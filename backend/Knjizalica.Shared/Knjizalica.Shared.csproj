@@ -1,0 +1,8 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Knjizalica.Shared</RootNamespace>
+    <AssemblyName>Knjizalica.Shared</AssemblyName>
+  </PropertyGroup>
+
+</Project>

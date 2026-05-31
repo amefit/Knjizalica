@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+  <PropertyGroup>
+    <RootNamespace>Knjizalica.Worker</RootNamespace>
+    <AssemblyName>Knjizalica.Worker</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DotNetEnv" />
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="RabbitMQ.Client" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Knjizalica.Shared\Knjizalica.Shared.csproj" />
+  </ItemGroup>
+
+</Project>

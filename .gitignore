@@ -1,0 +1,33 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+**/.vs/
+*.DotSettings.user
+.packages/
+
+# Environment
+.env
+!.env.example
+!.env-tajne.zip
+
+# Flutter (future phases)
+.dart_tool/
+.packages
+build/
+*.iml
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Uploads (local dev) — keep seed covers in git for demo/submission
+backend/Knjizalica.Api/wwwroot/uploads/*
+!backend/Knjizalica.Api/wwwroot/uploads/seed/
+!backend/Knjizalica.Api/wwwroot/uploads/seed/**

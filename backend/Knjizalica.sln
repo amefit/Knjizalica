@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Knjizalica.Shared", "Knjizalica.Shared\Knjizalica.Shared.csproj", "{27EAA365-667E-49CB-AB1B-DF6DD4025D82}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Knjizalica.Api", "Knjizalica.Api\Knjizalica.Api.csproj", "{0F72D7CD-AA50-4978-8885-09FDC61A94DB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Knjizalica.Worker", "Knjizalica.Worker\Knjizalica.Worker.csproj", "{BB7DE149-2C2D-4015-83B7-A421C1A21689}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{27EAA365-667E-49CB-AB1B-DF6DD4025D82}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27EAA365-667E-49CB-AB1B-DF6DD4025D82}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27EAA365-667E-49CB-AB1B-DF6DD4025D82}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27EAA365-667E-49CB-AB1B-DF6DD4025D82}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0F72D7CD-AA50-4978-8885-09FDC61A94DB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0F72D7CD-AA50-4978-8885-09FDC61A94DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0F72D7CD-AA50-4978-8885-09FDC61A94DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0F72D7CD-AA50-4978-8885-09FDC61A94DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB7DE149-2C2D-4015-83B7-A421C1A21689}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB7DE149-2C2D-4015-83B7-A421C1A21689}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB7DE149-2C2D-4015-83B7-A421C1A21689}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB7DE149-2C2D-4015-83B7-A421C1A21689}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
