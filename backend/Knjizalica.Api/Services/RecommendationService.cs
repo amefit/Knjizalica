@@ -53,15 +53,20 @@ public sealed class RecommendationService : IRecommendationService
             .Take(5)
             .ToListAsync(cancellationToken);
 
-        var allBooks = await _context.Books.AsNoTracking()
+        var allBooksLoaded = await _context.Books.AsNoTracking()
             .Include(b => b.Genre)
             .Include(b => b.BookCategory)
             .Include(b => b.Language)
             .Include(b => b.Publisher)
             .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
             .Include(b => b.BookCopies).ThenInclude(c => c.Reservations).ThenInclude(r => r.ReservationStatus)
-            .Where(b => b.BookCopies.Any(c => c.IsAvailable))
+            .Include(b => b.BookCopies).ThenInclude(c => c.Loans).ThenInclude(l => l.LoanStatus)
             .ToListAsync(cancellationToken);
+
+        var today = DateTime.UtcNow.Date;
+        var allBooks = allBooksLoaded
+            .Where(b => BookCopyAvailability.HasAnyRentableCopy(b.BookCopies, today))
+            .ToList();
 
         var excludeIds = borrowedBookIds.ToHashSet();
         var candidates = allBooks.Where(b => !excludeIds.Contains(b.Id)).ToList();
@@ -137,7 +142,8 @@ public sealed class RecommendationService : IRecommendationService
             .Include(b => b.Language)
             .Include(b => b.Publisher)
             .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
-            .Include(b => b.BookCopies)
+            .Include(b => b.BookCopies).ThenInclude(c => c.Reservations).ThenInclude(r => r.ReservationStatus)
+            .Include(b => b.BookCopies).ThenInclude(c => c.Loans).ThenInclude(l => l.LoanStatus)
             .Where(b => popularBookIds.Select(p => p.BookId).Contains(b.Id))
             .ToListAsync(cancellationToken);
 

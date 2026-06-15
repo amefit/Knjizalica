@@ -22,7 +22,7 @@ class _AdministrationScreenState extends State<AdministrationScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 9, vsync: this);
+    _tabController = TabController(length: 13, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReferenceDataProvider>().loadAll();
     });
@@ -56,6 +56,10 @@ class _AdministrationScreenState extends State<AdministrationScreen>
             Tab(text: 'Categories'),
             Tab(text: 'Languages'),
             Tab(text: 'Publishers'),
+            Tab(text: 'Membership Statuses'),
+            Tab(text: 'Loan Statuses'),
+            Tab(text: 'Reservation Statuses'),
+            Tab(text: 'Activity Types'),
             Tab(text: 'News'),
             Tab(text: 'Authors'),
             Tab(text: 'Reports'),
@@ -88,6 +92,22 @@ class _AdministrationScreenState extends State<AdministrationScreen>
                     _LookupTab(
                       type: 'publisher',
                       items: provider.publishers.map((p) => _LookupRow(p.id, p.name)).toList(),
+                    ),
+                    _LookupTab(
+                      type: 'membership-status',
+                      items: provider.membershipStatuses.map((s) => _LookupRow(s.id, s.name)).toList(),
+                    ),
+                    _LookupTab(
+                      type: 'loan-status',
+                      items: provider.loanStatuses.map((s) => _LookupRow(s.id, s.name)).toList(),
+                    ),
+                    _LookupTab(
+                      type: 'reservation-status',
+                      items: provider.reservationStatuses.map((s) => _LookupRow(s.id, s.name)).toList(),
+                    ),
+                    _LookupTab(
+                      type: 'activity-type',
+                      items: provider.activityTypes.map((s) => _LookupRow(s.id, s.name)).toList(),
                     ),
                     const NewsScreen(embedded: true),
                     const AuthorsScreen(embedded: true),

@@ -206,16 +206,31 @@ public sealed class MemberService : IMemberService
             .FirstOrDefaultAsync(m => m.Id == id, cancellationToken)
             ?? throw new NotFoundException("Member not found.");
 
-        var hasActiveLoans = await _context.Loans
-            .Include(l => l.LoanStatus)
-            .AnyAsync(l => l.MemberProfileId == id &&
-                (l.LoanStatus.Name == LoanStatusNames.Pending ||
-                 l.LoanStatus.Name == LoanStatusNames.Confirmed ||
-                 l.LoanStatus.Name == LoanStatusNames.Overdue), cancellationToken);
+        var activeLoanStatuses = new[] { LoanStatusNames.Pending, LoanStatusNames.Confirmed, LoanStatusNames.Overdue };
+        var activeReservationStatuses = new[] { ReservationStatusNames.Pending, ReservationStatusNames.Confirmed };
 
-        if (hasActiveLoans)
+        if (await _context.Loans
+                .Include(l => l.LoanStatus)
+                .AnyAsync(l => l.MemberProfileId == id && activeLoanStatuses.Contains(l.LoanStatus.Name), cancellationToken))
         {
             throw new BusinessException("Cannot delete member with active loans.");
+        }
+
+        if (await _context.Reservations
+                .Include(r => r.ReservationStatus)
+                .AnyAsync(r => r.MemberProfileId == id && activeReservationStatuses.Contains(r.ReservationStatus.Name), cancellationToken))
+        {
+            throw new BusinessException("Cannot delete member with active reservations.");
+        }
+
+        if (await _context.Loans.AnyAsync(l => l.MemberProfileId == id, cancellationToken))
+        {
+            throw new BusinessException("Cannot delete member with existing loans.");
+        }
+
+        if (await _context.Reservations.AnyAsync(r => r.MemberProfileId == id, cancellationToken))
+        {
+            throw new BusinessException("Cannot delete member with existing reservations.");
         }
 
         _context.MemberProfiles.Remove(profile);

@@ -105,7 +105,13 @@ public sealed class BookService : IBookService
                     (r.ReservationStatus.Name == ReservationStatusNames.Pending ||
                      r.ReservationStatus.Name == ReservationStatusNames.Confirmed) &&
                     r.FromDate <= today &&
-                    r.ToDate >= today)));
+                    r.ToDate >= today) &&
+                !c.Loans.Any(l =>
+                    (l.LoanStatus.Name == LoanStatusNames.Pending ||
+                     l.LoanStatus.Name == LoanStatusNames.Confirmed ||
+                     l.LoanStatus.Name == LoanStatusNames.Overdue) &&
+                    l.BorrowedAt.Date <= today &&
+                    l.DueDate.Date >= today)));
         }
 
         var todayForList = DateTime.UtcNow.Date;
@@ -128,7 +134,13 @@ public sealed class BookService : IBookService
                         (r.ReservationStatus.Name == ReservationStatusNames.Pending ||
                          r.ReservationStatus.Name == ReservationStatusNames.Confirmed) &&
                         r.FromDate <= todayForList &&
-                        r.ToDate >= todayForList)),
+                        r.ToDate >= todayForList) &&
+                    !c.Loans.Any(l =>
+                        (l.LoanStatus.Name == LoanStatusNames.Pending ||
+                         l.LoanStatus.Name == LoanStatusNames.Confirmed ||
+                         l.LoanStatus.Name == LoanStatusNames.Overdue) &&
+                        l.BorrowedAt.Date <= todayForList &&
+                        l.DueDate.Date >= todayForList)),
                 AuthorNames = b.BookAuthors.Select(ba => ba.Author.FirstName + " " + ba.Author.LastName).ToList()
             });
 
@@ -144,6 +156,7 @@ public sealed class BookService : IBookService
             .Include(b => b.Publisher)
             .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
             .Include(b => b.BookCopies).ThenInclude(c => c.Reservations).ThenInclude(r => r.ReservationStatus)
+            .Include(b => b.BookCopies).ThenInclude(c => c.Loans).ThenInclude(l => l.LoanStatus)
             .FirstOrDefaultAsync(b => b.Id == id, cancellationToken)
             ?? throw new NotFoundException("Book not found.");
 
@@ -247,14 +260,31 @@ public sealed class BookService : IBookService
             ?? throw new NotFoundException("Book not found.");
 
         var copyIds = book.BookCopies.Select(c => c.Id).ToList();
-        var hasActiveLoans = await _context.Loans
-            .Include(l => l.LoanStatus)
-            .AnyAsync(l => copyIds.Contains(l.BookCopyId) &&
-                (l.LoanStatus.Name == "Pending" || l.LoanStatus.Name == "Confirmed" || l.LoanStatus.Name == "Overdue"), cancellationToken);
+        var activeLoanStatuses = new[] { LoanStatusNames.Pending, LoanStatusNames.Confirmed, LoanStatusNames.Overdue };
+        var activeReservationStatuses = new[] { ReservationStatusNames.Pending, ReservationStatusNames.Confirmed };
 
-        if (hasActiveLoans)
+        if (await _context.Loans
+                .Include(l => l.LoanStatus)
+                .AnyAsync(l => copyIds.Contains(l.BookCopyId) && activeLoanStatuses.Contains(l.LoanStatus.Name), cancellationToken))
         {
             throw new BusinessException("Cannot delete book with active loans.");
+        }
+
+        if (await _context.Reservations
+                .Include(r => r.ReservationStatus)
+                .AnyAsync(r => copyIds.Contains(r.BookCopyId) && activeReservationStatuses.Contains(r.ReservationStatus.Name), cancellationToken))
+        {
+            throw new BusinessException("Cannot delete book with active reservations.");
+        }
+
+        if (await _context.Loans.AnyAsync(l => copyIds.Contains(l.BookCopyId), cancellationToken))
+        {
+            throw new BusinessException("Cannot delete book with existing loans.");
+        }
+
+        if (await _context.Reservations.AnyAsync(r => copyIds.Contains(r.BookCopyId), cancellationToken))
+        {
+            throw new BusinessException("Cannot delete book with existing reservations.");
         }
 
         _context.BookAuthors.RemoveRange(book.BookAuthors);

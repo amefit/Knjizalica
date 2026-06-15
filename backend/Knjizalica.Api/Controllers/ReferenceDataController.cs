@@ -152,4 +152,92 @@ public sealed class ReferenceDataController : ControllerBase
         await _service.DeletePublisherAsync(id, cancellationToken);
         return Ok(new MessageResponse { Message = "Publisher deleted." });
     }
+
+    [HttpGet("membership-statuses")]
+    public async Task<ActionResult<IReadOnlyList<LookupDto>>> GetMembershipStatuses(CancellationToken cancellationToken) =>
+        Ok(await _service.GetMembershipStatusesAsync(cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPost("membership-statuses")]
+    public async Task<ActionResult<LookupDto>> CreateMembershipStatus([FromBody] CreateLookupRequest request, CancellationToken cancellationToken) =>
+        Ok(await _service.CreateMembershipStatusAsync(request, cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPut("membership-statuses/{id:int}")]
+    public async Task<ActionResult<LookupDto>> UpdateMembershipStatus(int id, [FromBody] UpdateLookupRequest request, CancellationToken cancellationToken) =>
+        Ok(await _service.UpdateMembershipStatusAsync(id, request, cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpDelete("membership-statuses/{id:int}")]
+    public async Task<ActionResult<MessageResponse>> DeleteMembershipStatus(int id, CancellationToken cancellationToken)
+    {
+        await _service.DeleteMembershipStatusAsync(id, cancellationToken);
+        return Ok(new MessageResponse { Message = "Membership status deleted." });
+    }
+
+    [HttpGet("loan-statuses")]
+    public async Task<ActionResult<IReadOnlyList<LookupDto>>> GetLoanStatuses(CancellationToken cancellationToken) =>
+        Ok(await _service.GetLoanStatusesAsync(cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPost("loan-statuses")]
+    public async Task<ActionResult<LookupDto>> CreateLoanStatus([FromBody] CreateLookupRequest request, CancellationToken cancellationToken) =>
+        Ok(await _service.CreateLoanStatusAsync(request, cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPut("loan-statuses/{id:int}")]
+    public async Task<ActionResult<LookupDto>> UpdateLoanStatus(int id, [FromBody] UpdateLookupRequest request, CancellationToken cancellationToken) =>
+        Ok(await _service.UpdateLoanStatusAsync(id, request, cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpDelete("loan-statuses/{id:int}")]
+    public async Task<ActionResult<MessageResponse>> DeleteLoanStatus(int id, CancellationToken cancellationToken)
+    {
+        await _service.DeleteLoanStatusAsync(id, cancellationToken);
+        return Ok(new MessageResponse { Message = "Loan status deleted." });
+    }
+
+    [HttpGet("reservation-statuses")]
+    public async Task<ActionResult<IReadOnlyList<LookupDto>>> GetReservationStatuses(CancellationToken cancellationToken) =>
+        Ok(await _service.GetReservationStatusesAsync(cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPost("reservation-statuses")]
+    public async Task<ActionResult<LookupDto>> CreateReservationStatus([FromBody] CreateLookupRequest request, CancellationToken cancellationToken) =>
+        Ok(await _service.CreateReservationStatusAsync(request, cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPut("reservation-statuses/{id:int}")]
+    public async Task<ActionResult<LookupDto>> UpdateReservationStatus(int id, [FromBody] UpdateLookupRequest request, CancellationToken cancellationToken) =>
+        Ok(await _service.UpdateReservationStatusAsync(id, request, cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpDelete("reservation-statuses/{id:int}")]
+    public async Task<ActionResult<MessageResponse>> DeleteReservationStatus(int id, CancellationToken cancellationToken)
+    {
+        await _service.DeleteReservationStatusAsync(id, cancellationToken);
+        return Ok(new MessageResponse { Message = "Reservation status deleted." });
+    }
+
+    [HttpGet("activity-types")]
+    public async Task<ActionResult<IReadOnlyList<LookupDto>>> GetActivityTypes(CancellationToken cancellationToken) =>
+        Ok(await _service.GetActivityTypesAsync(cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPost("activity-types")]
+    public async Task<ActionResult<LookupDto>> CreateActivityType([FromBody] CreateLookupRequest request, CancellationToken cancellationToken) =>
+        Ok(await _service.CreateActivityTypeAsync(request, cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPut("activity-types/{id:int}")]
+    public async Task<ActionResult<LookupDto>> UpdateActivityType(int id, [FromBody] UpdateLookupRequest request, CancellationToken cancellationToken) =>
+        Ok(await _service.UpdateActivityTypeAsync(id, request, cancellationToken));
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpDelete("activity-types/{id:int}")]
+    public async Task<ActionResult<MessageResponse>> DeleteActivityType(int id, CancellationToken cancellationToken)
+    {
+        await _service.DeleteActivityTypeAsync(id, cancellationToken);
+        return Ok(new MessageResponse { Message = "Activity type deleted." });
+    }
 }

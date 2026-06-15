@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Knjizalica.Api.Common;
+using Knjizalica.Api.Services;
 
 namespace Knjizalica.Api.DTOs.Loans;
 
@@ -22,7 +23,7 @@ public sealed class LoanDto
     public DateTime? ApprovedAt { get; init; }
     public string? RejectionReason { get; init; }
     public string? Notes { get; init; }
-    public bool IsOverdue => Status == "Overdue" || (ReturnedAt == null && DueDate < DateTime.UtcNow && Status is "Confirmed" or "Overdue");
+    public bool IsOverdue => LoanOverdueRules.IsOverdue(Status, DueDate, ReturnedAt);
 }
 
 public sealed class CreateLoanRequest

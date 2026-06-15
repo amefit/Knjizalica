@@ -544,6 +544,90 @@ class ApiService {
     await delete('/referencedata/publishers/$id');
   }
 
+  Future<List<LookupItem>> getMembershipStatuses() async {
+    final data = await get('/referencedata/membership-statuses');
+    return (data as List<dynamic>)
+        .map((e) => LookupItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<LookupItem> createMembershipStatus(String name) async {
+    final data = await post('/referencedata/membership-statuses', body: {'name': name});
+    return LookupItem.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<LookupItem> updateMembershipStatus(int id, String name) async {
+    final data = await put('/referencedata/membership-statuses/$id', body: {'name': name});
+    return LookupItem.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteMembershipStatus(int id) async {
+    await delete('/referencedata/membership-statuses/$id');
+  }
+
+  Future<List<LookupItem>> getLoanStatuses() async {
+    final data = await get('/referencedata/loan-statuses');
+    return (data as List<dynamic>)
+        .map((e) => LookupItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<LookupItem> createLoanStatus(String name) async {
+    final data = await post('/referencedata/loan-statuses', body: {'name': name});
+    return LookupItem.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<LookupItem> updateLoanStatus(int id, String name) async {
+    final data = await put('/referencedata/loan-statuses/$id', body: {'name': name});
+    return LookupItem.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteLoanStatus(int id) async {
+    await delete('/referencedata/loan-statuses/$id');
+  }
+
+  Future<List<LookupItem>> getReservationStatuses() async {
+    final data = await get('/referencedata/reservation-statuses');
+    return (data as List<dynamic>)
+        .map((e) => LookupItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<LookupItem> createReservationStatus(String name) async {
+    final data = await post('/referencedata/reservation-statuses', body: {'name': name});
+    return LookupItem.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<LookupItem> updateReservationStatus(int id, String name) async {
+    final data = await put('/referencedata/reservation-statuses/$id', body: {'name': name});
+    return LookupItem.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteReservationStatus(int id) async {
+    await delete('/referencedata/reservation-statuses/$id');
+  }
+
+  Future<List<LookupItem>> getActivityTypes() async {
+    final data = await get('/referencedata/activity-types');
+    return (data as List<dynamic>)
+        .map((e) => LookupItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<LookupItem> createActivityType(String name) async {
+    final data = await post('/referencedata/activity-types', body: {'name': name});
+    return LookupItem.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<LookupItem> updateActivityType(int id, String name) async {
+    final data = await put('/referencedata/activity-types/$id', body: {'name': name});
+    return LookupItem.fromJson(data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteActivityType(int id) async {
+    await delete('/referencedata/activity-types/$id');
+  }
+
   // News
   Future<List<NewsItem>> getNews({String? search, bool? isActive}) async {
     final query = <String, String>{

@@ -28,8 +28,9 @@ public sealed class ReportService : IReportService
             .Include(l => l.BookCopy).ThenInclude(c => c.Book)
             .Include(l => l.LoanStatus)
             .Where(l =>
-                l.LoanStatus.Name == LoanStatusNames.Overdue ||
-                (l.ReturnedAt == null && l.DueDate < now && l.LoanStatus.Name == LoanStatusNames.Confirmed))
+                l.ReturnedAt == null &&
+                (l.LoanStatus.Name == LoanStatusNames.Overdue ||
+                 (l.LoanStatus.Name == LoanStatusNames.Confirmed && l.DueDate < now)))
             .OrderBy(l => l.DueDate)
             .ToListAsync(cancellationToken);
 

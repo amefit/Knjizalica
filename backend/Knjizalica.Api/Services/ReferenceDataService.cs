@@ -39,6 +39,26 @@ public interface IReferenceDataService
     Task<LookupDto> CreatePublisherAsync(CreateLookupRequest request, CancellationToken cancellationToken = default);
     Task<LookupDto> UpdatePublisherAsync(int id, UpdateLookupRequest request, CancellationToken cancellationToken = default);
     Task DeletePublisherAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LookupDto>> GetMembershipStatusesAsync(CancellationToken cancellationToken = default);
+    Task<LookupDto> CreateMembershipStatusAsync(CreateLookupRequest request, CancellationToken cancellationToken = default);
+    Task<LookupDto> UpdateMembershipStatusAsync(int id, UpdateLookupRequest request, CancellationToken cancellationToken = default);
+    Task DeleteMembershipStatusAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LookupDto>> GetLoanStatusesAsync(CancellationToken cancellationToken = default);
+    Task<LookupDto> CreateLoanStatusAsync(CreateLookupRequest request, CancellationToken cancellationToken = default);
+    Task<LookupDto> UpdateLoanStatusAsync(int id, UpdateLookupRequest request, CancellationToken cancellationToken = default);
+    Task DeleteLoanStatusAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LookupDto>> GetReservationStatusesAsync(CancellationToken cancellationToken = default);
+    Task<LookupDto> CreateReservationStatusAsync(CreateLookupRequest request, CancellationToken cancellationToken = default);
+    Task<LookupDto> UpdateReservationStatusAsync(int id, UpdateLookupRequest request, CancellationToken cancellationToken = default);
+    Task DeleteReservationStatusAsync(int id, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<LookupDto>> GetActivityTypesAsync(CancellationToken cancellationToken = default);
+    Task<LookupDto> CreateActivityTypeAsync(CreateLookupRequest request, CancellationToken cancellationToken = default);
+    Task<LookupDto> UpdateActivityTypeAsync(int id, UpdateLookupRequest request, CancellationToken cancellationToken = default);
+    Task DeleteActivityTypeAsync(int id, CancellationToken cancellationToken = default);
 }
 
 public sealed class ReferenceDataService : IReferenceDataService
@@ -205,6 +225,54 @@ public sealed class ReferenceDataService : IReferenceDataService
     public Task DeletePublisherAsync(int id, CancellationToken cancellationToken = default) =>
         DeleteLookupAsync("publishers", id, b => b.PublisherId, "publisher", cancellationToken);
 
+    public Task<IReadOnlyList<LookupDto>> GetMembershipStatusesAsync(CancellationToken cancellationToken = default) =>
+        GetLookupAsync("membership-statuses", cancellationToken);
+
+    public Task<LookupDto> CreateMembershipStatusAsync(CreateLookupRequest request, CancellationToken cancellationToken = default) =>
+        CreateMembershipStatusInternalAsync(request, cancellationToken);
+
+    public Task<LookupDto> UpdateMembershipStatusAsync(int id, UpdateLookupRequest request, CancellationToken cancellationToken = default) =>
+        UpdateLookupAsync("membership-statuses", id, request, cancellationToken);
+
+    public Task DeleteMembershipStatusAsync(int id, CancellationToken cancellationToken = default) =>
+        DeleteStatusLookupAsync("membership-statuses", id, "membership status", cancellationToken);
+
+    public Task<IReadOnlyList<LookupDto>> GetLoanStatusesAsync(CancellationToken cancellationToken = default) =>
+        GetLookupAsync("loan-statuses", cancellationToken);
+
+    public Task<LookupDto> CreateLoanStatusAsync(CreateLookupRequest request, CancellationToken cancellationToken = default) =>
+        CreateLoanStatusInternalAsync(request, cancellationToken);
+
+    public Task<LookupDto> UpdateLoanStatusAsync(int id, UpdateLookupRequest request, CancellationToken cancellationToken = default) =>
+        UpdateLookupAsync("loan-statuses", id, request, cancellationToken);
+
+    public Task DeleteLoanStatusAsync(int id, CancellationToken cancellationToken = default) =>
+        DeleteStatusLookupAsync("loan-statuses", id, "loan status", cancellationToken);
+
+    public Task<IReadOnlyList<LookupDto>> GetReservationStatusesAsync(CancellationToken cancellationToken = default) =>
+        GetLookupAsync("reservation-statuses", cancellationToken);
+
+    public Task<LookupDto> CreateReservationStatusAsync(CreateLookupRequest request, CancellationToken cancellationToken = default) =>
+        CreateReservationStatusInternalAsync(request, cancellationToken);
+
+    public Task<LookupDto> UpdateReservationStatusAsync(int id, UpdateLookupRequest request, CancellationToken cancellationToken = default) =>
+        UpdateLookupAsync("reservation-statuses", id, request, cancellationToken);
+
+    public Task DeleteReservationStatusAsync(int id, CancellationToken cancellationToken = default) =>
+        DeleteStatusLookupAsync("reservation-statuses", id, "reservation status", cancellationToken);
+
+    public Task<IReadOnlyList<LookupDto>> GetActivityTypesAsync(CancellationToken cancellationToken = default) =>
+        GetLookupAsync("activity-types", cancellationToken);
+
+    public Task<LookupDto> CreateActivityTypeAsync(CreateLookupRequest request, CancellationToken cancellationToken = default) =>
+        CreateActivityTypeInternalAsync(request, cancellationToken);
+
+    public Task<LookupDto> UpdateActivityTypeAsync(int id, UpdateLookupRequest request, CancellationToken cancellationToken = default) =>
+        UpdateLookupAsync("activity-types", id, request, cancellationToken);
+
+    public Task DeleteActivityTypeAsync(int id, CancellationToken cancellationToken = default) =>
+        DeleteStatusLookupAsync("activity-types", id, "activity type", cancellationToken);
+
     private async Task<LookupDto> CreateGenreInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
     {
         var entity = new Genre { Name = request.Name.Trim() };
@@ -241,6 +309,42 @@ public sealed class ReferenceDataService : IReferenceDataService
         return new LookupDto { Id = entity.Id, Name = entity.Name };
     }
 
+    private async Task<LookupDto> CreateMembershipStatusInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
+    {
+        var entity = new MembershipStatus { Name = request.Name.Trim() };
+        _context.MembershipStatuses.Add(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+        InvalidateCache("membership-statuses");
+        return new LookupDto { Id = entity.Id, Name = entity.Name };
+    }
+
+    private async Task<LookupDto> CreateLoanStatusInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
+    {
+        var entity = new LoanStatus { Name = request.Name.Trim() };
+        _context.LoanStatuses.Add(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+        InvalidateCache("loan-statuses");
+        return new LookupDto { Id = entity.Id, Name = entity.Name };
+    }
+
+    private async Task<LookupDto> CreateReservationStatusInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
+    {
+        var entity = new ReservationStatus { Name = request.Name.Trim() };
+        _context.ReservationStatuses.Add(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+        InvalidateCache("reservation-statuses");
+        return new LookupDto { Id = entity.Id, Name = entity.Name };
+    }
+
+    private async Task<LookupDto> CreateActivityTypeInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
+    {
+        var entity = new ActivityType { Name = request.Name.Trim() };
+        _context.ActivityTypes.Add(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+        InvalidateCache("activity-types");
+        return new LookupDto { Id = entity.Id, Name = entity.Name };
+    }
+
     private async Task<IReadOnlyList<LookupDto>> GetLookupAsync(string cacheSuffix, CancellationToken cancellationToken)
     {
         return await _cache.GetOrCreateAsync($"{CacheKeyPrefix}{cacheSuffix}", async entry =>
@@ -256,6 +360,14 @@ public sealed class ReferenceDataService : IReferenceDataService
                     .Select(x => new LookupDto { Id = x.Id, Name = x.Name }).ToListAsync(cancellationToken),
                 "publishers" => await _context.Publishers.AsNoTracking().OrderBy(x => x.Name)
                     .Select(x => new LookupDto { Id = x.Id, Name = x.Name }).ToListAsync(cancellationToken),
+                "membership-statuses" => await _context.MembershipStatuses.AsNoTracking().OrderBy(x => x.Name)
+                    .Select(x => new LookupDto { Id = x.Id, Name = x.Name }).ToListAsync(cancellationToken),
+                "loan-statuses" => await _context.LoanStatuses.AsNoTracking().OrderBy(x => x.Name)
+                    .Select(x => new LookupDto { Id = x.Id, Name = x.Name }).ToListAsync(cancellationToken),
+                "reservation-statuses" => await _context.ReservationStatuses.AsNoTracking().OrderBy(x => x.Name)
+                    .Select(x => new LookupDto { Id = x.Id, Name = x.Name }).ToListAsync(cancellationToken),
+                "activity-types" => await _context.ActivityTypes.AsNoTracking().OrderBy(x => x.Name)
+                    .Select(x => new LookupDto { Id = x.Id, Name = x.Name }).ToListAsync(cancellationToken),
                 _ => []
             };
         }) ?? [];
@@ -269,6 +381,10 @@ public sealed class ReferenceDataService : IReferenceDataService
             "categories" => await _context.BookCategories.FindAsync([id], cancellationToken),
             "languages" => await _context.Languages.FindAsync([id], cancellationToken),
             "publishers" => await _context.Publishers.FindAsync([id], cancellationToken),
+            "membership-statuses" => await _context.MembershipStatuses.FindAsync([id], cancellationToken),
+            "loan-statuses" => await _context.LoanStatuses.FindAsync([id], cancellationToken),
+            "reservation-statuses" => await _context.ReservationStatuses.FindAsync([id], cancellationToken),
+            "activity-types" => await _context.ActivityTypes.FindAsync([id], cancellationToken),
             _ => null
         } ?? throw new NotFoundException("Record not found.");
 
@@ -308,6 +424,44 @@ public sealed class ReferenceDataService : IReferenceDataService
         InvalidateCache(cacheSuffix);
     }
 
+    private async Task DeleteStatusLookupAsync(string cacheSuffix, int id, string label, CancellationToken cancellationToken)
+    {
+        var entity = cacheSuffix switch
+        {
+            "membership-statuses" => (object?)await _context.MembershipStatuses.FindAsync([id], cancellationToken),
+            "loan-statuses" => await _context.LoanStatuses.FindAsync([id], cancellationToken),
+            "reservation-statuses" => await _context.ReservationStatuses.FindAsync([id], cancellationToken),
+            "activity-types" => await _context.ActivityTypes.FindAsync([id], cancellationToken),
+            _ => null
+        } ?? throw new NotFoundException("Record not found.");
+
+        var isInUse = cacheSuffix switch
+        {
+            "membership-statuses" => await _context.MemberProfiles.AnyAsync(m => m.MembershipStatusId == id, cancellationToken),
+            "loan-statuses" => await _context.Loans.AnyAsync(l => l.LoanStatusId == id, cancellationToken),
+            "reservation-statuses" => await _context.Reservations.AnyAsync(r => r.ReservationStatusId == id, cancellationToken),
+            "activity-types" => await _context.ActivityLogs.AnyAsync(a => a.ActivityTypeId == id, cancellationToken),
+            _ => false
+        };
+
+        if (isInUse)
+        {
+            var usageLabel = cacheSuffix switch
+            {
+                "membership-statuses" => "members",
+                "loan-statuses" => "loans",
+                "reservation-statuses" => "reservations",
+                "activity-types" => "activity logs",
+                _ => "records"
+            };
+            throw new BusinessException($"Cannot delete {label} that is used by {usageLabel}.");
+        }
+
+        _context.Remove(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+        InvalidateCache(cacheSuffix);
+    }
+
     private async Task EnsureCountryExistsAsync(int countryId, CancellationToken cancellationToken)
     {
         if (!await _context.Countries.AnyAsync(c => c.Id == countryId, cancellationToken))
@@ -332,6 +486,10 @@ public sealed class ReferenceDataService : IReferenceDataService
         BookCategory c => c.Id,
         Language l => l.Id,
         Publisher p => p.Id,
+        MembershipStatus ms => ms.Id,
+        LoanStatus ls => ls.Id,
+        ReservationStatus rs => rs.Id,
+        ActivityType at => at.Id,
         _ => 0
     };
 
@@ -341,6 +499,10 @@ public sealed class ReferenceDataService : IReferenceDataService
         BookCategory c => c.Name,
         Language l => l.Name,
         Publisher p => p.Name,
+        MembershipStatus ms => ms.Name,
+        LoanStatus ls => ls.Name,
+        ReservationStatus rs => rs.Name,
+        ActivityType at => at.Name,
         Country c => c.Name,
         City c => c.Name,
         _ => string.Empty
@@ -354,6 +516,10 @@ public sealed class ReferenceDataService : IReferenceDataService
             case BookCategory c: c.Name = name; break;
             case Language l: l.Name = name; break;
             case Publisher p: p.Name = name; break;
+            case MembershipStatus ms: ms.Name = name; break;
+            case LoanStatus ls: ls.Name = name; break;
+            case ReservationStatus rs: rs.Name = name; break;
+            case ActivityType at: at.Name = name; break;
         }
     }
 }

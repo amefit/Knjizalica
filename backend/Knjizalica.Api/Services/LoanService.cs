@@ -87,22 +87,25 @@ public sealed class LoanService : ILoanService
             .FirstOrDefaultAsync(m => m.Id == request.MemberProfileId, cancellationToken)
             ?? throw new NotFoundException("Member not found.");
 
-        if (member.MembershipStatus.Name != MembershipStatusNames.Active)
-        {
-            throw new BusinessException("Member is not active.");
-        }
+        MemberEligibility.EnsureCanBorrowAndReserve(member);
 
         var copy = await _context.BookCopies
             .Include(c => c.Book)
+            .Include(c => c.Loans).ThenInclude(l => l.LoanStatus)
+            .Include(c => c.Reservations).ThenInclude(r => r.ReservationStatus)
             .FirstOrDefaultAsync(c => c.Id == request.BookCopyId, cancellationToken)
             ?? throw new NotFoundException("Book copy not found.");
 
-        if (!copy.IsAvailable)
+        if (!BookCopyAvailability.IsRentableOnDate(copy, DateTime.UtcNow.Date))
         {
             throw new BusinessException("Book copy is not available.");
         }
 
         await EnsureNoActiveLoanOverlapAsync(copy.Id, cancellationToken);
+
+        var fromDate = DateTime.UtcNow.Date;
+        var toDate = request.DueDate.ToUniversalTime().Date;
+        await EnsureNoActiveReservationOverlapAsync(copy.Id, fromDate, toDate, cancellationToken);
 
         var pendingStatus = await _context.LoanStatuses
             .FirstAsync(s => s.Name == LoanStatusNames.Pending, cancellationToken);
@@ -137,6 +140,7 @@ public sealed class LoanService : ILoanService
         LoanStateMachine.ValidateTransition(currentStatus, LoanStatusNames.Confirmed);
 
         await EnsureNoActiveLoanOverlapAsync(loan.BookCopyId, loan.Id, cancellationToken);
+        await EnsureNoActiveReservationOverlapAsync(loan.BookCopyId, loan.BorrowedAt.Date, loan.DueDate.Date, cancellationToken);
 
         var confirmedStatus = await _context.LoanStatuses
             .FirstAsync(s => s.Name == LoanStatusNames.Confirmed, cancellationToken);
@@ -144,7 +148,6 @@ public sealed class LoanService : ILoanService
         loan.LoanStatusId = confirmedStatus.Id;
         loan.ApprovedByUserId = _currentUser.UserId;
         loan.ApprovedAt = DateTime.UtcNow;
-        loan.BookCopy.IsAvailable = false;
 
         await _context.SaveChangesAsync(cancellationToken);
         await NotifyStatusChangeAsync(loan, "confirmed", cancellationToken);
@@ -166,18 +169,11 @@ public sealed class LoanService : ILoanService
         var loan = await LoadLoanForUpdateAsync(id, cancellationToken);
         LoanStateMachine.ValidateTransition(loan.LoanStatus.Name, LoanStatusNames.Cancelled);
 
-        var wasActive = loan.LoanStatus.Name is LoanStatusNames.Confirmed or LoanStatusNames.Overdue;
-
         var cancelledStatus = await _context.LoanStatuses
             .FirstAsync(s => s.Name == LoanStatusNames.Cancelled, cancellationToken);
 
         loan.LoanStatusId = cancelledStatus.Id;
         loan.RejectionReason = request.Reason?.Trim();
-
-        if (wasActive)
-        {
-            loan.BookCopy.IsAvailable = true;
-        }
 
         await _context.SaveChangesAsync(cancellationToken);
         await NotifyStatusChangeAsync(loan, "cancelled", cancellationToken);
@@ -205,7 +201,6 @@ public sealed class LoanService : ILoanService
 
         loan.LoanStatusId = completedStatus.Id;
         loan.ReturnedAt = DateTime.UtcNow;
-        loan.BookCopy.IsAvailable = true;
 
         await _context.SaveChangesAsync(cancellationToken);
         await NotifyStatusChangeAsync(loan, "returned", cancellationToken);
@@ -232,10 +227,9 @@ public sealed class LoanService : ILoanService
         {
             var now = DateTime.UtcNow;
             loans = loans.Where(l =>
-                l.LoanStatus.Name == LoanStatusNames.Overdue ||
-                (l.ReturnedAt == null &&
-                 l.DueDate < now &&
-                 (l.LoanStatus.Name == LoanStatusNames.Confirmed || l.LoanStatus.Name == LoanStatusNames.Overdue)));
+                l.ReturnedAt == null &&
+                (l.LoanStatus.Name == LoanStatusNames.Overdue ||
+                 (l.LoanStatus.Name == LoanStatusNames.Confirmed && l.DueDate < now)));
         }
 
         if (query.MemberProfileId.HasValue)
@@ -333,6 +327,23 @@ public sealed class LoanService : ILoanService
         if (hasOverlap)
         {
             throw new BusinessException("Book copy already has an active loan.");
+        }
+    }
+
+    private async Task EnsureNoActiveReservationOverlapAsync(int bookCopyId, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken)
+    {
+        var activeStatuses = new[] { ReservationStatusNames.Pending, ReservationStatusNames.Confirmed };
+        var hasOverlap = await _context.Reservations
+            .Include(r => r.ReservationStatus)
+            .AnyAsync(r =>
+                r.BookCopyId == bookCopyId &&
+                activeStatuses.Contains(r.ReservationStatus.Name) &&
+                r.FromDate <= toDate &&
+                r.ToDate >= fromDate, cancellationToken);
+
+        if (hasOverlap)
+        {
+            throw new BusinessException("Book copy has an overlapping active reservation");
         }
     }
 

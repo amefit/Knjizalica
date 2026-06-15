@@ -26,7 +26,22 @@ public sealed class DashboardService : IDashboardService
 
         var totalBooks = await _context.Books.CountAsync(cancellationToken);
         var totalCopies = await _context.BookCopies.CountAsync(cancellationToken);
-        var availableCopies = await _context.BookCopies.CountAsync(c => c.IsAvailable, cancellationToken);
+        var today = DateTime.UtcNow.Date;
+        var availableCopies = await _context.BookCopies
+            .CountAsync(c =>
+                c.IsAvailable &&
+                !c.Reservations.Any(r =>
+                    (r.ReservationStatus.Name == ReservationStatusNames.Pending ||
+                     r.ReservationStatus.Name == ReservationStatusNames.Confirmed) &&
+                    r.FromDate <= today &&
+                    r.ToDate >= today) &&
+                !c.Loans.Any(l =>
+                    (l.LoanStatus.Name == LoanStatusNames.Pending ||
+                     l.LoanStatus.Name == LoanStatusNames.Confirmed ||
+                     l.LoanStatus.Name == LoanStatusNames.Overdue) &&
+                    l.BorrowedAt.Date <= today &&
+                    l.DueDate.Date >= today),
+                cancellationToken);
 
         var activeLoanStatuses = new[] { LoanStatusNames.Confirmed, LoanStatusNames.Overdue };
         var activeLoans = await _context.Loans
@@ -36,8 +51,10 @@ public sealed class DashboardService : IDashboardService
         var overdueLoans = await _context.Loans
             .Include(l => l.LoanStatus)
             .CountAsync(l =>
-                l.LoanStatus.Name == LoanStatusNames.Overdue ||
-                (l.ReturnedAt == null && l.DueDate < now && l.LoanStatus.Name == LoanStatusNames.Confirmed), cancellationToken);
+                l.ReturnedAt == null &&
+                (l.LoanStatus.Name == LoanStatusNames.Overdue ||
+                 (l.LoanStatus.Name == LoanStatusNames.Confirmed && l.DueDate < now)),
+                cancellationToken);
 
         var pendingLoans = await _context.Loans
             .Include(l => l.LoanStatus)

@@ -282,13 +282,13 @@ public static class DatabaseSeeder
             {
                 BookId = book.Id,
                 InventoryCode = $"BC-{book.Id:D4}-01",
-                IsAvailable = true
+                IsAvailable = book.Title != "Prokleto pleme"
             });
             context.BookCopies.Add(new BookCopy
             {
                 BookId = book.Id,
                 InventoryCode = $"BC-{book.Id:D4}-02",
-                IsAvailable = book.Title != "Prokleto pleme"
+                IsAvailable = true
             });
         }
 
@@ -309,10 +309,11 @@ public static class DatabaseSeeder
         var reservationConfirmed = await context.ReservationStatuses.FirstAsync(s => s.Name == ReservationStatusNames.Confirmed);
 
         var copies = await context.BookCopies.Include(c => c.Book).ToListAsync();
-        var copy1984 = copies.First(c => c.Book.Title == "1984");
-        var copyDrina = copies.First(c => c.Book.Title == "Na Drini cuprija");
-        var copyTravnik = copies.First(c => c.Book.Title == "Travnicka hronika");
-        var copyProkleto = copies.First(c => c.Book.Title == "Prokleto pleme");
+        var copy1984 = copies.First(c => c.Book.Title == "1984" && c.InventoryCode.EndsWith("-01"));
+        var copyDrina = copies.First(c => c.Book.Title == "Na Drini cuprija" && c.InventoryCode.EndsWith("-01"));
+        var copyTravnik = copies.First(c => c.Book.Title == "Travnicka hronika" && c.InventoryCode.EndsWith("-01"));
+        var copyDonQuijote = copies.First(c => c.Book.Title == "Don Quijote" && c.InventoryCode.EndsWith("-01"));
+        var today = DateTime.UtcNow.Date;
 
         context.Loans.AddRange(
             new Loan
@@ -338,18 +339,16 @@ public static class DatabaseSeeder
                 BookCopyId = copyTravnik.Id,
                 LoanStatusId = overdue.Id,
                 BorrowedAt = DateTime.UtcNow.AddDays(-20),
-                DueDate = DateTime.UtcNow.AddDays(-5)
+                DueDate = today
             });
-
-        copyProkleto.IsAvailable = false;
 
         context.Reservations.Add(new Reservation
         {
             MemberProfileId = member.Id,
-            BookCopyId = copies.First(c => c.Book.Title == "Don Quijote").Id,
+            BookCopyId = copyDonQuijote.Id,
             ReservationStatusId = reservationConfirmed.Id,
-            FromDate = DateTime.UtcNow.Date.AddDays(3),
-            ToDate = DateTime.UtcNow.Date.AddDays(10)
+            FromDate = today,
+            ToDate = today.AddDays(7)
         });
 
         await context.SaveChangesAsync();

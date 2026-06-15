@@ -76,10 +76,7 @@ public sealed class ReservationService : IReservationService
             .FirstOrDefaultAsync(m => m.UserId == userId, cancellationToken)
             ?? throw new NotFoundException("Member profile not found.");
 
-        if (member.MembershipStatus.Name != MembershipStatusNames.Active)
-        {
-            throw new BusinessException("Member is not active.");
-        }
+        MemberEligibility.EnsureCanBorrowAndReserve(member);
 
         var copy = await _context.BookCopies
             .Include(c => c.Book)
@@ -195,6 +192,8 @@ public sealed class ReservationService : IReservationService
     {
         var copy = await _context.BookCopies.AsNoTracking()
             .Include(c => c.Book)
+            .Include(c => c.Reservations).ThenInclude(r => r.ReservationStatus)
+            .Include(c => c.Loans).ThenInclude(l => l.LoanStatus)
             .FirstOrDefaultAsync(c => c.Id == bookCopyId, cancellationToken)
             ?? throw new NotFoundException("Book copy not found.");
 
@@ -206,40 +205,7 @@ public sealed class ReservationService : IReservationService
             throw new ValidationAppException("ToDate must be on or after FromDate.");
         }
 
-        var activeReservationStatuses = new[] { ReservationStatusNames.Pending, ReservationStatusNames.Confirmed };
-        var activeLoanStatuses = new[] { LoanStatusNames.Pending, LoanStatusNames.Confirmed, LoanStatusNames.Overdue };
-
-        var reservations = await _context.Reservations.AsNoTracking()
-            .Include(r => r.ReservationStatus)
-            .Where(r => r.BookCopyId == bookCopyId && activeReservationStatuses.Contains(r.ReservationStatus.Name))
-            .Where(r => r.FromDate <= rangeEnd && r.ToDate >= rangeStart)
-            .ToListAsync(cancellationToken);
-
-        var loans = await _context.Loans.AsNoTracking()
-            .Include(l => l.LoanStatus)
-            .Where(l => l.BookCopyId == bookCopyId && activeLoanStatuses.Contains(l.LoanStatus.Name))
-            .Where(l => l.BorrowedAt.Date <= rangeEnd && l.DueDate.Date >= rangeStart)
-            .ToListAsync(cancellationToken);
-
-        var occupied = new List<OccupiedPeriodDto>();
-
-        occupied.AddRange(reservations.Select(r => new OccupiedPeriodDto
-        {
-            FromDate = r.FromDate,
-            ToDate = r.ToDate,
-            Reason = $"Reservation ({r.ReservationStatus.Name})",
-            SourceType = "Reservation"
-        }));
-
-        occupied.AddRange(loans.Select(l => new OccupiedPeriodDto
-        {
-            FromDate = l.BorrowedAt.Date,
-            ToDate = l.DueDate.Date,
-            Reason = $"Loan ({l.LoanStatus.Name})",
-            SourceType = "Loan"
-        }));
-
-        occupied = occupied.OrderBy(o => o.FromDate).ToList();
+        var occupied = BookCopyAvailability.GetOccupiedPeriods(copy, rangeStart, rangeEnd).ToList();
         var freePeriods = CalculateFreePeriods(rangeStart, rangeEnd, occupied);
 
         return new AvailabilityCalendarDto

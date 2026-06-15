@@ -14,6 +14,10 @@ class ReferenceDataProvider extends ChangeNotifier {
   List<LookupItem> bookCategories = [];
   List<LookupItem> languages = [];
   List<LookupItem> publishers = [];
+  List<LookupItem> membershipStatuses = [];
+  List<LookupItem> loanStatuses = [];
+  List<LookupItem> reservationStatuses = [];
+  List<LookupItem> activityTypes = [];
 
   bool isLoading = false;
   String? error;
@@ -31,6 +35,10 @@ class ReferenceDataProvider extends ChangeNotifier {
         _api.getBookCategories(),
         _api.getLanguages(),
         _api.getPublishers(),
+        _api.getMembershipStatuses(),
+        _api.getLoanStatuses(),
+        _api.getReservationStatuses(),
+        _api.getActivityTypes(),
       ]);
       countries = results[0] as List<Country>;
       cities = results[1] as List<City>;
@@ -38,6 +46,10 @@ class ReferenceDataProvider extends ChangeNotifier {
       bookCategories = results[3] as List<LookupItem>;
       languages = results[4] as List<LookupItem>;
       publishers = results[5] as List<LookupItem>;
+      membershipStatuses = results[6] as List<LookupItem>;
+      loanStatuses = results[7] as List<LookupItem>;
+      reservationStatuses = results[8] as List<LookupItem>;
+      activityTypes = results[9] as List<LookupItem>;
     } on ApiException catch (e) {
       error = e.message;
     } catch (_) {
@@ -93,6 +105,30 @@ class ReferenceDataProvider extends ChangeNotifier {
           } else {
             await _api.updatePublisher(id, name);
           }
+        case 'membership-status':
+          if (id == null) {
+            await _api.createMembershipStatus(name);
+          } else {
+            await _api.updateMembershipStatus(id, name);
+          }
+        case 'loan-status':
+          if (id == null) {
+            await _api.createLoanStatus(name);
+          } else {
+            await _api.updateLoanStatus(id, name);
+          }
+        case 'reservation-status':
+          if (id == null) {
+            await _api.createReservationStatus(name);
+          } else {
+            await _api.updateReservationStatus(id, name);
+          }
+        case 'activity-type':
+          if (id == null) {
+            await _api.createActivityType(name);
+          } else {
+            await _api.updateActivityType(id, name);
+          }
       }
       await loadAll();
       return true;
@@ -122,6 +158,14 @@ class ReferenceDataProvider extends ChangeNotifier {
           await _api.deleteLanguage(id);
         case 'publisher':
           await _api.deletePublisher(id);
+        case 'membership-status':
+          await _api.deleteMembershipStatus(id);
+        case 'loan-status':
+          await _api.deleteLoanStatus(id);
+        case 'reservation-status':
+          await _api.deleteReservationStatus(id);
+        case 'activity-type':
+          await _api.deleteActivityType(id);
       }
       await loadAll();
       return true;
