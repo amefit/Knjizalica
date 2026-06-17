@@ -11,8 +11,8 @@ class BooksProvider extends ChangeNotifier {
 
   final ApiService _api;
 
-  List<BookListDto> featured = [];
-  List<BookListDto> popular = [];
+  List<RecommendationDto> featured = [];
+  List<RecommendationDto> popular = [];
   List<BookListDto> searchResults = [];
   BookDetailDto? selectedBook;
   AvailabilityCalendarDto? availability;
@@ -33,8 +33,8 @@ class BooksProvider extends ChangeNotifier {
 
     try {
       final recommendations = await _api.getRecommendations(limit: 12);
-      featured = recommendations.contentBased.map((r) => r.book).toList();
-      popular = recommendations.popular.map((r) => r.book).toList();
+      featured = recommendations.contentBased;
+      popular = recommendations.popular;
     } catch (e) {
       errorMessage = e is ApiException ? e.message : e.toString();
     }

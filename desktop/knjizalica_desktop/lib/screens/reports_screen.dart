@@ -1,9 +1,7 @@
-import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 
 import '../models/models.dart';
@@ -41,7 +39,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
     setState(() => _success = 'Report saved to $path');
   }
 
-  Future<void> _downloadOverdueReport() async {
+  Future<void> _printPdf(Uint8List bytes, String name) async {
+    await Printing.layoutPdf(
+      onLayout: (format) async => bytes,
+      name: name,
+    );
+  }
+
+  Future<void> _downloadOverdueReport({bool printOnly = false}) async {
     setState(() {
       _isDownloading = true;
       _error = null;
@@ -51,17 +56,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
     try {
       final api = context.read<AuthApiHolder>().api;
       final bytes = await api.downloadOverdueLoansReport();
-      await _savePdf(bytes, 'overdue-loans-${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf');
+      final name = 'overdue-loans-${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf';
+      if (printOnly) {
+        await _printPdf(bytes, name);
+      } else {
+        await _savePdf(bytes, name);
+      }
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Failed to download report.');
+      setState(() => _error = 'Failed to process report.');
     } finally {
       setState(() => _isDownloading = false);
     }
   }
 
-  Future<void> _downloadLoansByPeriodReport() async {
+  Future<void> _downloadLoansByPeriodReport({bool printOnly = false}) async {
     setState(() {
       _isDownloading = true;
       _error = null;
@@ -73,11 +83,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
       final bytes = await api.downloadLoansByPeriodReport(_fromDate, _toDate);
       final name =
           'loans-by-period-${DateFormat('yyyyMMdd').format(_fromDate)}-${DateFormat('yyyyMMdd').format(_toDate)}.pdf';
-      await _savePdf(bytes, name);
+      if (printOnly) {
+        await _printPdf(bytes, name);
+      } else {
+        await _savePdf(bytes, name);
+      }
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (_) {
-      setState(() => _error = 'Failed to download report.');
+      setState(() => _error = 'Failed to process report.');
     } finally {
       setState(() => _isDownloading = false);
     }
@@ -92,7 +106,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           if (!widget.embedded)
             const PageHeader(
               title: 'Reports',
-              subtitle: 'Download PDF reports for library operations',
+              subtitle: 'Download and print PDF reports for library operations',
             ),
           if (_error != null) ErrorBanner(message: _error!),
           if (_success != null)
@@ -100,9 +114,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.08),
+                color: Colors.green.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                border: Border.all(color: Colors.green.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
@@ -128,10 +142,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     style: TextStyle(color: Colors.grey),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _isDownloading ? null : _downloadOverdueReport,
-                    icon: const Icon(Icons.download),
-                    label: const Text('Download Overdue Loans PDF'),
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _isDownloading ? null : () => _downloadOverdueReport(),
+                        icon: const Icon(Icons.download),
+                        label: const Text('Download PDF'),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _isDownloading ? null : () => _downloadOverdueReport(printOnly: true),
+                        icon: const Icon(Icons.print),
+                        label: const Text('Print Report'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -186,10 +210,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: _isDownloading ? null : _downloadLoansByPeriodReport,
-                    icon: const Icon(Icons.download),
-                    label: const Text('Download Loans by Period PDF'),
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: _isDownloading ? null : () => _downloadLoansByPeriodReport(),
+                        icon: const Icon(Icons.download),
+                        label: const Text('Download PDF'),
+                      ),
+                      const SizedBox(width: 12),
+                      OutlinedButton.icon(
+                        onPressed: _isDownloading ? null : () => _downloadLoansByPeriodReport(printOnly: true),
+                        icon: const Icon(Icons.print),
+                        label: const Text('Print Report'),
+                      ),
+                    ],
                   ),
                 ],
               ),

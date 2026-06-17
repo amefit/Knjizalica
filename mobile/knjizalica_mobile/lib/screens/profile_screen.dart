@@ -20,6 +20,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _phoneController;
+  final _passwordFormKey = GlobalKey<FormState>();
   int? _selectedCityId;
 
   final _currentPasswordController = TextEditingController();
@@ -86,22 +87,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'Profile updated.'
-              : auth.errorMessage ?? 'Update failed.',
-        ),
-      ),
-    );
+    if (!success && auth.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(auth.errorMessage!)),
+      );
+    } else if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated.')),
+      );
+    }
   }
 
   Future<void> _changePassword() async {
-    if (_newPasswordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('New passwords do not match.')),
-      );
+    if (!_passwordFormKey.currentState!.validate()) {
       return;
     }
 
@@ -122,17 +120,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _currentPasswordController.clear();
       _newPasswordController.clear();
       _confirmPasswordController.clear();
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'Password changed.'
-              : auth.errorMessage ?? 'Password change failed.',
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password changed.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.errorMessage ?? 'Password change failed.'),
         ),
-      ),
-    );
+      );
+    }
   }
 
   Future<void> _logout() async {
@@ -247,8 +244,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             controller: _phoneController,
                             decoration: const InputDecoration(
                               labelText: 'Phone',
+                              hintText: 'e.g. +38761123456',
                             ),
                             keyboardType: TextInputType.phone,
+                            validator: (v) {
+                              if (v != null && v.isNotEmpty) {
+                                if (!RegExp(r'^\+?[\d\s-]{6,}$').hasMatch(v)) {
+                                  return 'Enter a valid phone number';
+                                }
+                              }
+                              return null;
+                            },
                           ),
                           const SizedBox(height: 12),
                           if (auth.cities.isNotEmpty)
@@ -268,6 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   _selectedCityId = v;
                                 });
                               },
+                              validator: (v) => v == null ? 'Required' : null,
                             ),
                           const SizedBox(height: 16),
                           ElevatedButton(
@@ -281,37 +288,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                   _SectionCard(
                     title: 'Change password',
-                    child: Column(
-                      children: [
-                        TextField(
-                          controller: _currentPasswordController,
-                          decoration: const InputDecoration(
-                            labelText: 'Current password',
+                    child: Form(
+                      key: _passwordFormKey,
+                      child: Column(
+                        children: [
+                          TextFormField(
+                            controller: _currentPasswordController,
+                            decoration: const InputDecoration(
+                              labelText: 'Current password',
+                            ),
+                            obscureText: true,
+                            validator: (v) => v == null || v.isEmpty ? 'Required' : null,
                           ),
-                          obscureText: true,
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _newPasswordController,
-                          decoration: const InputDecoration(
-                            labelText: 'New password',
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _newPasswordController,
+                            decoration: const InputDecoration(
+                              labelText: 'New password',
+                            ),
+                            obscureText: true,
+                            validator: (v) {
+                              if (v == null || v.length < 8) {
+                                return 'At least 8 characters';
+                              }
+                              if (!RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$').hasMatch(v)) {
+                                return 'Must have digit, lower, upper and special char';
+                              }
+                              return null;
+                            },
                           ),
-                          obscureText: true,
-                        ),
-                        const SizedBox(height: 12),
-                        TextField(
-                          controller: _confirmPasswordController,
-                          decoration: const InputDecoration(
-                            labelText: 'Confirm new password',
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _confirmPasswordController,
+                            decoration: const InputDecoration(
+                              labelText: 'Confirm new password',
+                            ),
+                            obscureText: true,
+                            validator: (v) {
+                              if (v != _newPasswordController.text) {
+                                return 'Passwords do not match';
+                              }
+                              return null;
+                            },
                           ),
-                          obscureText: true,
-                        ),
-                        const SizedBox(height: 16),
-                        OutlinedButton(
-                          onPressed: auth.isLoading ? null : _changePassword,
-                          child: const Text('Update password'),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          OutlinedButton(
+                            onPressed: auth.isLoading ? null : _changePassword,
+                            child: const Text('Update password'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),

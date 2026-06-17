@@ -100,12 +100,16 @@ public sealed class Reservation
     public DateTime ToDate { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public int? ApprovedByUserId { get; set; }
+    public DateTime? ApprovedAt { get; set; }
+    public DateTime? CancelledAt { get; set; }
+    public int? CancelledByUserId { get; set; }
     public string? CancellationReason { get; set; }
 
     public MemberProfile MemberProfile { get; set; } = null!;
     public BookCopy BookCopy { get; set; } = null!;
     public ReservationStatus ReservationStatus { get; set; } = null!;
     public ApplicationUser? ApprovedByUser { get; set; }
+    public ApplicationUser? CancelledByUser { get; set; }
 }
 
 public sealed class Notification

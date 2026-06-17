@@ -13,12 +13,14 @@ class BookCard extends StatelessWidget {
     this.onTap,
     this.compact = false,
     this.showRecommended = false,
+    this.recommendationReason,
   });
 
   final BookListDto book;
   final VoidCallback? onTap;
   final bool compact;
   final bool showRecommended;
+  final String? recommendationReason;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +82,19 @@ class BookCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
                 ),
+                if (recommendationReason != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    recommendationReason!,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.blue.shade700,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 4),
                 StatusBadge(
                   status: book.isAvailable ? 'Available' : 'Borrowed',
@@ -116,6 +131,17 @@ class BookCard extends StatelessWidget {
                   '${book.genreName} · ${book.publisherName}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                if (recommendationReason != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    recommendationReason!,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue.shade700,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 StatusBadge(
                   status: book.isAvailable ? 'Available' : 'Borrowed',

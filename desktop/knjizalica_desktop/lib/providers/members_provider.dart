@@ -88,6 +88,48 @@ class MembersProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> createMember(Map<String, dynamic> body) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await _api.createMember(body);
+      await loadMembers();
+      return true;
+    } on ApiException catch (e) {
+      error = e.message;
+      return false;
+    } catch (_) {
+      error = 'Failed to create member.';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateMember(int id, Map<String, dynamic> body) async {
+    isLoading = true;
+    error = null;
+    notifyListeners();
+
+    try {
+      await _api.updateMember(id, body);
+      await loadMembers();
+      return true;
+    } on ApiException catch (e) {
+      error = e.message;
+      return false;
+    } catch (_) {
+      error = 'Failed to update member.';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<bool> deleteMember(int id) async {
     try {
       await _api.deleteMember(id);

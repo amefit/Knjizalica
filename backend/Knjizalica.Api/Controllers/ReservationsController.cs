@@ -45,6 +45,11 @@ public sealed class ReservationsController : ControllerBase
     public async Task<ActionResult<ReservationDto>> Confirm(int id, CancellationToken cancellationToken) =>
         Ok(await _service.ConfirmAsync(id, cancellationToken));
 
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPost("{id:int}/complete")]
+    public async Task<ActionResult<ReservationDto>> Complete(int id, CancellationToken cancellationToken) =>
+        Ok(await _service.CompleteAsync(id, cancellationToken));
+
     [HttpGet("availability/{bookCopyId:int}")]
     public async Task<ActionResult<AvailabilityCalendarDto>> GetAvailability(
         int bookCopyId,

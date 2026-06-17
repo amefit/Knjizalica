@@ -104,38 +104,48 @@ public sealed class AuthService : IAuthService
         var activeStatus = await _context.MembershipStatuses
             .FirstAsync(s => s.Name == MembershipStatusNames.Active, cancellationToken);
 
-        var user = new ApplicationUser
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            UserName = request.Username,
-            Email = request.Email,
-            FirstName = request.FirstName,
-            LastName = request.LastName,
-            PhoneNumber = request.PhoneNumber,
-            EmailConfirmed = true
-        };
+            var user = new ApplicationUser
+            {
+                UserName = request.Username,
+                Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
+                PhoneNumber = request.PhoneNumber,
+                EmailConfirmed = true
+            };
 
-        var createResult = await _userManager.CreateAsync(user, request.Password);
-        if (!createResult.Succeeded)
-        {
-            throw new ValidationAppException(string.Join(" ", createResult.Errors.Select(e => e.Description)));
+            var createResult = await _userManager.CreateAsync(user, request.Password);
+            if (!createResult.Succeeded)
+            {
+                throw new ValidationAppException(string.Join(" ", createResult.Errors.Select(e => e.Description)));
+            }
+
+            await _userManager.AddToRoleAsync(user, RoleNames.User);
+
+            var cardNumber = await GenerateMemberCardNumberAsync(cancellationToken);
+            _context.MemberProfiles.Add(new MemberProfile
+            {
+                UserId = user.Id,
+                MemberCardNumber = cardNumber,
+                MembershipStatusId = activeStatus.Id,
+                CityId = request.CityId,
+                RegistrationDate = DateTime.UtcNow,
+                ExpiryDate = DateTime.UtcNow.AddYears(1)
+            });
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return await BuildAuthResponseAsync(user, cancellationToken);
         }
-
-        await _userManager.AddToRoleAsync(user, RoleNames.User);
-
-        var cardNumber = await GenerateMemberCardNumberAsync(cancellationToken);
-        _context.MemberProfiles.Add(new MemberProfile
+        catch
         {
-            UserId = user.Id,
-            MemberCardNumber = cardNumber,
-            MembershipStatusId = activeStatus.Id,
-            CityId = request.CityId,
-            RegistrationDate = DateTime.UtcNow,
-            ExpiryDate = DateTime.UtcNow.AddYears(1)
-        });
-
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return await BuildAuthResponseAsync(user, cancellationToken);
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task LogoutAsync(CancellationToken cancellationToken = default)

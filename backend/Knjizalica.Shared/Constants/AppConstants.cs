@@ -3,6 +3,7 @@ namespace Knjizalica.Shared.Constants;
 public static class RoleNames
 {
     public const string Admin = "Admin";
+    public const string Librarian = "Librarian";
     public const string User = "User";
 }
 

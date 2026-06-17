@@ -20,10 +20,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _cityIdController = TextEditingController(text: '1');
 
   int? _selectedCityId;
-  bool _useManualCityId = true;
   bool _obscurePassword = true;
 
   @override
@@ -42,7 +40,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
     if (auth.cities.isNotEmpty) {
       setState(() {
-        _useManualCityId = false;
         _selectedCityId = auth.cities.first.id;
       });
     }
@@ -57,7 +54,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _cityIdController.dispose();
     super.dispose();
   }
 
@@ -66,14 +62,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final cityId = _useManualCityId
-        ? int.tryParse(_cityIdController.text.trim())
-        : _selectedCityId;
-
-    if (cityId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a valid city.')),
-      );
+    if (_selectedCityId == null) {
       return;
     }
 
@@ -85,7 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       username: _usernameController.text.trim(),
       password: _passwordController.text,
       confirmPassword: _confirmPasswordController.text,
-      cityId: cityId,
+      cityId: _selectedCityId!,
       phoneNumber: _phoneController.text.trim().isEmpty
           ? null
           : _phoneController.text.trim(),
@@ -140,7 +129,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (v == null || v.trim().isEmpty) {
                       return 'Required';
                     }
-                    if (!v.contains('@')) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(v)) {
                       return 'Enter a valid email';
                     }
                     return null;
@@ -162,25 +152,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _phoneController,
                   decoration: const InputDecoration(
                     labelText: 'Phone (optional)',
+                    hintText: 'e.g. +38761123456',
                   ),
                   keyboardType: TextInputType.phone,
+                  validator: (v) {
+                    if (v != null && v.isNotEmpty) {
+                      if (!RegExp(r'^\+?[\d\s-]{6,}$').hasMatch(v)) {
+                        return 'Enter a valid phone number';
+                      }
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 12),
-                if (_useManualCityId)
-                  TextFormField(
-                    controller: _cityIdController,
-                    decoration: const InputDecoration(
-                      labelText: 'City ID',
-                      helperText:
-                          'Cities list requires sign-in on API; enter seeded city id (e.g. 1).',
+                if (auth.isLoading && auth.cities.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2)),
+                        SizedBox(width: 12),
+                        Text('Loading cities...',
+                            style: TextStyle(fontSize: 12)),
+                      ],
                     ),
-                    keyboardType: TextInputType.number,
-                    validator: (v) {
-                      if (int.tryParse(v ?? '') == null) {
-                        return 'Enter a numeric city id';
-                      }
-                      return null;
-                    },
+                  )
+                else if (auth.cities.isEmpty)
+                  TextFormField(
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'City',
+                      errorText:
+                          'Failed to load cities. Check your connection.',
+                    ),
+                    validator: (_) => 'Cities must be loaded to continue',
                   )
                 else
                   DropdownButtonFormField<int>(

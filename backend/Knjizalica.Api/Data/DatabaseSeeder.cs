@@ -25,7 +25,7 @@ public static class DatabaseSeeder
 
     private static async Task SeedRolesAsync(RoleManager<ApplicationRole> roleManager)
     {
-        foreach (var role in new[] { RoleNames.Admin, RoleNames.User })
+        foreach (var role in new[] { RoleNames.Admin, RoleNames.Librarian, RoleNames.User })
         {
             if (!await roleManager.RoleExistsAsync(role))
             {
@@ -93,10 +93,20 @@ public static class DatabaseSeeder
             new ActivityType { Name = "Book Created" },
             new ActivityType { Name = "Book Updated" },
             new ActivityType { Name = "Book Deleted" },
+            new ActivityType { Name = "Author Created" },
+            new ActivityType { Name = "Author Updated" },
+            new ActivityType { Name = "Author Deleted" },
             new ActivityType { Name = "Loan Created" },
+            new ActivityType { Name = "Loan Confirmed" },
             new ActivityType { Name = "Loan Returned" },
+            new ActivityType { Name = "Loan Cancelled" },
             new ActivityType { Name = "Member Created" },
+            new ActivityType { Name = "Member Blocked" },
+            new ActivityType { Name = "Member Unblocked" },
             new ActivityType { Name = "Reservation Created" },
+            new ActivityType { Name = "Reservation Confirmed" },
+            new ActivityType { Name = "Reservation Cancelled" },
+            new ActivityType { Name = "Reservation Completed" },
             new ActivityType { Name = "Login" });
 
         await context.SaveChangesAsync();

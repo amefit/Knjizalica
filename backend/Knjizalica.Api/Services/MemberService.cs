@@ -130,39 +130,49 @@ public sealed class MemberService : IMemberService
         var activeStatus = await _context.MembershipStatuses
             .FirstAsync(s => s.Name == MembershipStatusNames.Active, cancellationToken);
 
-        var user = new ApplicationUser
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            UserName = request.Username,
-            Email = request.Email,
-            FirstName = request.FirstName.Trim(),
-            LastName = request.LastName.Trim(),
-            PhoneNumber = request.PhoneNumber,
-            EmailConfirmed = true
-        };
+            var user = new ApplicationUser
+            {
+                UserName = request.Username,
+                Email = request.Email,
+                FirstName = request.FirstName.Trim(),
+                LastName = request.LastName.Trim(),
+                PhoneNumber = request.PhoneNumber,
+                EmailConfirmed = true
+            };
 
-        var createResult = await _userManager.CreateAsync(user, request.Password);
-        if (!createResult.Succeeded)
-        {
-            throw new ValidationAppException(string.Join(" ", createResult.Errors.Select(e => e.Description)));
+            var createResult = await _userManager.CreateAsync(user, request.Password);
+            if (!createResult.Succeeded)
+            {
+                throw new ValidationAppException(string.Join(" ", createResult.Errors.Select(e => e.Description)));
+            }
+
+            await _userManager.AddToRoleAsync(user, RoleNames.User);
+
+            var profile = new MemberProfile
+            {
+                UserId = user.Id,
+                MemberCardNumber = await GenerateMemberCardNumberAsync(cancellationToken),
+                MembershipStatusId = activeStatus.Id,
+                CityId = request.CityId,
+                RegistrationDate = DateTime.UtcNow,
+                ExpiryDate = request.ExpiryDate ?? DateTime.UtcNow.AddYears(1)
+            };
+
+            _context.MemberProfiles.Add(profile);
+            await _context.SaveChangesAsync(cancellationToken);
+            await _activityLog.LogAsync("Member Created", "MemberProfile", profile.Id, $"Member '{user.FirstName} {user.LastName}' was created.", cancellationToken: cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return await GetByIdAsync(profile.Id, cancellationToken);
         }
-
-        await _userManager.AddToRoleAsync(user, RoleNames.User);
-
-        var profile = new MemberProfile
+        catch
         {
-            UserId = user.Id,
-            MemberCardNumber = await GenerateMemberCardNumberAsync(cancellationToken),
-            MembershipStatusId = activeStatus.Id,
-            CityId = request.CityId,
-            RegistrationDate = DateTime.UtcNow,
-            ExpiryDate = request.ExpiryDate ?? DateTime.UtcNow.AddYears(1)
-        };
-
-        _context.MemberProfiles.Add(profile);
-        await _context.SaveChangesAsync(cancellationToken);
-        await _activityLog.LogAsync("Member Created", "MemberProfile", profile.Id, $"Member '{user.FirstName} {user.LastName}' was created.", cancellationToken: cancellationToken);
-
-        return await GetByIdAsync(profile.Id, cancellationToken);
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task<MemberDto> UpdateAsync(int id, UpdateMemberRequest request, CancellationToken cancellationToken = default)
@@ -183,20 +193,30 @@ public sealed class MemberService : IMemberService
             throw new BusinessException("Email is already registered.");
         }
 
-        profile.User.FirstName = request.FirstName.Trim();
-        profile.User.LastName = request.LastName.Trim();
-        profile.User.Email = request.Email;
-        profile.User.PhoneNumber = request.PhoneNumber;
-        profile.CityId = request.CityId;
-        if (request.ExpiryDate.HasValue)
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            profile.ExpiryDate = request.ExpiryDate.Value;
+            profile.User.FirstName = request.FirstName.Trim();
+            profile.User.LastName = request.LastName.Trim();
+            profile.User.Email = request.Email;
+            profile.User.PhoneNumber = request.PhoneNumber;
+            profile.CityId = request.CityId;
+            if (request.ExpiryDate.HasValue)
+            {
+                profile.ExpiryDate = request.ExpiryDate.Value;
+            }
+
+            await _userManager.UpdateAsync(profile.User);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return await GetByIdAsync(id, cancellationToken);
         }
-
-        await _userManager.UpdateAsync(profile.User);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        return await GetByIdAsync(id, cancellationToken);
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
@@ -233,9 +253,20 @@ public sealed class MemberService : IMemberService
             throw new BusinessException("Cannot delete member with existing reservations.");
         }
 
-        _context.MemberProfiles.Remove(profile);
-        await _context.SaveChangesAsync(cancellationToken);
-        await _userManager.DeleteAsync(profile.User);
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            _context.MemberProfiles.Remove(profile);
+            await _context.SaveChangesAsync(cancellationToken);
+            await _userManager.DeleteAsync(profile.User);
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task BlockAsync(int id, CancellationToken cancellationToken = default)
@@ -252,6 +283,7 @@ public sealed class MemberService : IMemberService
         profile.MembershipStatusId = blockedStatus.Id;
         profile.User.IsActive = false;
         await _context.SaveChangesAsync(cancellationToken);
+        await _activityLog.LogAsync("Member Blocked", "MemberProfile", profile.Id, $"Member '{profile.User.FirstName} {profile.User.LastName}' was blocked.", cancellationToken: cancellationToken);
     }
 
     public async Task UnblockAsync(int id, CancellationToken cancellationToken = default)
@@ -267,6 +299,7 @@ public sealed class MemberService : IMemberService
         profile.MembershipStatusId = activeStatus.Id;
         profile.User.IsActive = true;
         await _context.SaveChangesAsync(cancellationToken);
+        await _activityLog.LogAsync("Member Unblocked", "MemberProfile", profile.Id, $"Member '{profile.User.FirstName} {profile.User.LastName}' was unblocked.", cancellationToken: cancellationToken);
     }
 
     public async Task<MemberProfileDto> GetMyProfileAsync(CancellationToken cancellationToken = default)

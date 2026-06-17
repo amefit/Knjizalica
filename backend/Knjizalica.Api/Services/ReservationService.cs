@@ -17,6 +17,7 @@ public interface IReservationService
     Task<ReservationDto> CreateAsync(CreateReservationRequest request, CancellationToken cancellationToken = default);
     Task<ReservationDto> CancelAsync(int id, CancelReservationRequest request, CancellationToken cancellationToken = default);
     Task<ReservationDto> ConfirmAsync(int id, CancellationToken cancellationToken = default);
+    Task<ReservationDto> CompleteAsync(int id, CancellationToken cancellationToken = default);
     Task<AvailabilityCalendarDto> GetAvailabilityCalendarAsync(int bookCopyId, DateTime fromDate, DateTime toDate, CancellationToken cancellationToken = default);
 }
 
@@ -86,6 +87,11 @@ public sealed class ReservationService : IReservationService
         var fromDate = request.FromDate.Date;
         var toDate = request.ToDate.Date;
 
+        if (fromDate < DateTime.UtcNow.Date)
+        {
+            throw new ValidationAppException("Reservation cannot be in the past.");
+        }
+
         if (toDate < fromDate)
         {
             throw new ValidationAppException("ToDate must be on or after FromDate.");
@@ -140,9 +146,13 @@ public sealed class ReservationService : IReservationService
             .FirstAsync(s => s.Name == ReservationStatusNames.Cancelled, cancellationToken);
 
         reservation.ReservationStatusId = cancelledStatus.Id;
+        reservation.CancelledAt = DateTime.UtcNow;
+        reservation.CancelledByUserId = _currentUser.UserId;
         reservation.CancellationReason = request.Reason?.Trim();
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _activityLog.LogAsync("Reservation Cancelled", "Reservation", reservation.Id, $"Reservation #{reservation.Id} was cancelled. Reason: {reservation.CancellationReason}", cancellationToken: cancellationToken);
+
         await _notifications.SendAsync(
             reservation.MemberProfile.UserId,
             "Reservation cancelled",
@@ -175,8 +185,11 @@ public sealed class ReservationService : IReservationService
 
         reservation.ReservationStatusId = confirmedStatus.Id;
         reservation.ApprovedByUserId = _currentUser.UserId;
+        reservation.ApprovedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync(cancellationToken);
+        await _activityLog.LogAsync("Reservation Confirmed", "Reservation", reservation.Id, $"Reservation #{reservation.Id} was confirmed.", cancellationToken: cancellationToken);
+
         await _notifications.SendAsync(
             reservation.MemberProfile.UserId,
             "Reservation confirmed",
@@ -184,6 +197,22 @@ public sealed class ReservationService : IReservationService
             sendEmail: true,
             email: reservation.MemberProfile.User.Email,
             cancellationToken: cancellationToken);
+
+        return MapReservation(reservation);
+    }
+
+    public async Task<ReservationDto> CompleteAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var reservation = await LoadForUpdateAsync(id, cancellationToken);
+        ReservationStateMachine.ValidateTransition(reservation.ReservationStatus.Name, ReservationStatusNames.Completed);
+
+        var completedStatus = await _context.ReservationStatuses
+            .FirstAsync(s => s.Name == ReservationStatusNames.Completed, cancellationToken);
+
+        reservation.ReservationStatusId = completedStatus.Id;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await _activityLog.LogAsync("Reservation Completed", "Reservation", reservation.Id, $"Reservation #{reservation.Id} was completed.", cancellationToken: cancellationToken);
 
         return MapReservation(reservation);
     }
@@ -267,6 +296,9 @@ public sealed class ReservationService : IReservationService
                 ToDate = r.ToDate,
                 CreatedAt = r.CreatedAt,
                 ApprovedByName = r.ApprovedByUser != null ? r.ApprovedByUser.FirstName + " " + r.ApprovedByUser.LastName : null,
+                ApprovedAt = r.ApprovedAt,
+                CancelledAt = r.CancelledAt,
+                CancelledByName = r.CancelledByUser != null ? r.CancelledByUser.FirstName + " " + r.CancelledByUser.LastName : null,
                 CancellationReason = r.CancellationReason
             });
 
@@ -278,7 +310,8 @@ public sealed class ReservationService : IReservationService
             .Include(r => r.MemberProfile).ThenInclude(m => m.User)
             .Include(r => r.BookCopy).ThenInclude(c => c.Book)
             .Include(r => r.ReservationStatus)
-            .Include(r => r.ApprovedByUser);
+            .Include(r => r.ApprovedByUser)
+            .Include(r => r.CancelledByUser);
 
     private async Task<Reservation> LoadForUpdateAsync(int id, CancellationToken cancellationToken) =>
         await _context.Reservations
@@ -286,6 +319,7 @@ public sealed class ReservationService : IReservationService
             .Include(r => r.BookCopy).ThenInclude(c => c.Book)
             .Include(r => r.ReservationStatus)
             .Include(r => r.ApprovedByUser)
+            .Include(r => r.CancelledByUser)
             .FirstOrDefaultAsync(r => r.Id == id, cancellationToken)
         ?? throw new NotFoundException("Reservation not found.");
 
@@ -383,6 +417,9 @@ public sealed class ReservationService : IReservationService
         ToDate = r.ToDate,
         CreatedAt = r.CreatedAt,
         ApprovedByName = r.ApprovedByUser != null ? $"{r.ApprovedByUser.FirstName} {r.ApprovedByUser.LastName}" : null,
+        ApprovedAt = r.ApprovedAt,
+        CancelledAt = r.CancelledAt,
+        CancelledByName = r.CancelledByUser != null ? $"{r.CancelledByUser.FirstName} {r.CancelledByUser.LastName}" : null,
         CancellationReason = r.CancellationReason
     };
 }

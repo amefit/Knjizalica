@@ -167,42 +167,52 @@ public sealed class BookService : IBookService
     {
         await ValidateReferencesAsync(request.GenreId, request.BookCategoryId, request.LanguageId, request.PublisherId, request.AuthorIds, cancellationToken);
 
-        var book = new Book
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            Title = request.Title.Trim(),
-            Edition = request.Edition?.Trim(),
-            Description = request.Description?.Trim(),
-            CoverImagePath = request.CoverImagePath,
-            GenreId = request.GenreId,
-            BookCategoryId = request.BookCategoryId,
-            LanguageId = request.LanguageId,
-            PublisherId = request.PublisherId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Books.Add(book);
-        await _context.SaveChangesAsync(cancellationToken);
-
-        foreach (var authorId in request.AuthorIds.Distinct())
-        {
-            _context.BookAuthors.Add(new BookAuthor { BookId = book.Id, AuthorId = authorId });
-        }
-
-        var copyCount = Math.Max(1, request.CopyCount);
-        for (var i = 1; i <= copyCount; i++)
-        {
-            _context.BookCopies.Add(new BookCopy
+            var book = new Book
             {
-                BookId = book.Id,
-                InventoryCode = $"BC-{book.Id:D4}-{i:D2}",
-                IsAvailable = true
-            });
+                Title = request.Title.Trim(),
+                Edition = request.Edition?.Trim(),
+                Description = request.Description?.Trim(),
+                CoverImagePath = request.CoverImagePath,
+                GenreId = request.GenreId,
+                BookCategoryId = request.BookCategoryId,
+                LanguageId = request.LanguageId,
+                PublisherId = request.PublisherId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Books.Add(book);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            foreach (var authorId in request.AuthorIds.Distinct())
+            {
+                _context.BookAuthors.Add(new BookAuthor { BookId = book.Id, AuthorId = authorId });
+            }
+
+            var copyCount = Math.Max(1, request.CopyCount);
+            for (var i = 1; i <= copyCount; i++)
+            {
+                _context.BookCopies.Add(new BookCopy
+                {
+                    BookId = book.Id,
+                    InventoryCode = $"BC-{book.Id:D4}-{i:D2}",
+                    IsAvailable = true
+                });
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await _activityLog.LogAsync("Book Created", "Book", book.Id, $"Book '{book.Title}' was created.", cancellationToken: cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return await GetByIdAsync(book.Id, cancellationToken);
         }
-
-        await _context.SaveChangesAsync(cancellationToken);
-        await _activityLog.LogAsync("Book Created", "Book", book.Id, $"Book '{book.Title}' was created.", cancellationToken: cancellationToken);
-
-        return await GetByIdAsync(book.Id, cancellationToken);
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task<BookDetailDto> UpdateAsync(int id, UpdateBookRequest request, CancellationToken cancellationToken = default)
@@ -215,40 +225,50 @@ public sealed class BookService : IBookService
 
         await ValidateReferencesAsync(request.GenreId, request.BookCategoryId, request.LanguageId, request.PublisherId, request.AuthorIds, cancellationToken);
 
-        book.Title = request.Title.Trim();
-        book.Edition = request.Edition?.Trim();
-        book.Description = request.Description?.Trim();
-        book.CoverImagePath = request.CoverImagePath;
-        book.GenreId = request.GenreId;
-        book.BookCategoryId = request.BookCategoryId;
-        book.LanguageId = request.LanguageId;
-        book.PublisherId = request.PublisherId;
-
-        _context.BookAuthors.RemoveRange(book.BookAuthors);
-        foreach (var authorId in request.AuthorIds.Distinct())
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            _context.BookAuthors.Add(new BookAuthor { BookId = book.Id, AuthorId = authorId });
-        }
+            book.Title = request.Title.Trim();
+            book.Edition = request.Edition?.Trim();
+            book.Description = request.Description?.Trim();
+            book.CoverImagePath = request.CoverImagePath;
+            book.GenreId = request.GenreId;
+            book.BookCategoryId = request.BookCategoryId;
+            book.LanguageId = request.LanguageId;
+            book.PublisherId = request.PublisherId;
 
-        if (request.CopyCount > 0)
-        {
-            var target = Math.Max(1, request.CopyCount);
-            var current = book.BookCopies.Count;
-            for (var i = current + 1; i <= target; i++)
+            _context.BookAuthors.RemoveRange(book.BookAuthors);
+            foreach (var authorId in request.AuthorIds.Distinct())
             {
-                _context.BookCopies.Add(new BookCopy
-                {
-                    BookId = book.Id,
-                    InventoryCode = $"BC-{book.Id:D4}-{i:D2}",
-                    IsAvailable = true
-                });
+                _context.BookAuthors.Add(new BookAuthor { BookId = book.Id, AuthorId = authorId });
             }
+
+            if (request.CopyCount > 0)
+            {
+                var target = Math.Max(1, request.CopyCount);
+                var current = book.BookCopies.Count;
+                for (var i = current + 1; i <= target; i++)
+                {
+                    _context.BookCopies.Add(new BookCopy
+                    {
+                        BookId = book.Id,
+                        InventoryCode = $"BC-{book.Id:D4}-{i:D2}",
+                        IsAvailable = true
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await _activityLog.LogAsync("Book Updated", "Book", book.Id, $"Book '{book.Title}' was updated.", cancellationToken: cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+            return await GetByIdAsync(book.Id, cancellationToken);
         }
-
-        await _context.SaveChangesAsync(cancellationToken);
-        await _activityLog.LogAsync("Book Updated", "Book", book.Id, $"Book '{book.Title}' was updated.", cancellationToken: cancellationToken);
-
-        return await GetByIdAsync(book.Id, cancellationToken);
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
@@ -287,11 +307,22 @@ public sealed class BookService : IBookService
             throw new BusinessException("Cannot delete book with existing reservations.");
         }
 
-        _context.BookAuthors.RemoveRange(book.BookAuthors);
-        _context.BookCopies.RemoveRange(book.BookCopies);
-        _context.Books.Remove(book);
-        await _context.SaveChangesAsync(cancellationToken);
-        await _activityLog.LogAsync("Book Deleted", "Book", id, $"Book '{book.Title}' was deleted.", cancellationToken: cancellationToken);
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            _context.BookAuthors.RemoveRange(book.BookAuthors);
+            _context.BookCopies.RemoveRange(book.BookCopies);
+            _context.Books.Remove(book);
+            await _context.SaveChangesAsync(cancellationToken);
+            await _activityLog.LogAsync("Book Deleted", "Book", id, $"Book '{book.Title}' was deleted.", cancellationToken: cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     private async Task ValidateReferencesAsync(int genreId, int categoryId, int languageId, int publisherId, IReadOnlyList<int> authorIds, CancellationToken cancellationToken)

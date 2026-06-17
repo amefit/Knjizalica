@@ -51,7 +51,27 @@ public static class JwtConfiguration
                         return;
                     }
 
+                    var userIdStr = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrWhiteSpace(userIdStr) || !int.TryParse(userIdStr, out var userId))
+                    {
+                        context.Fail("Token is missing a valid user identifier.");
+                        return;
+                    }
+
                     var dbContext = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                    
+                    var userStatus = await dbContext.Users
+                        .AsNoTracking()
+                        .Where(u => u.Id == userId)
+                        .Select(u => new { u.IsActive })
+                        .FirstOrDefaultAsync();
+
+                    if (userStatus == null || !userStatus.IsActive)
+                    {
+                        context.Fail("User account is inactive or blocked.");
+                        return;
+                    }
+
                     var isRevoked = await dbContext.RevokedTokens
                         .AsNoTracking()
                         .AnyAsync(t => t.Jti == jti && t.ExpiresAt > DateTime.UtcNow);

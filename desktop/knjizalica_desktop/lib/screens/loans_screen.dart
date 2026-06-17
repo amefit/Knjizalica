@@ -58,16 +58,58 @@ class _LoansScreenState extends State<LoansScreen> with SingleTickerProviderStat
   }
 
   Future<void> _confirmLoan(int id) async {
-    final ok = await context.read<LoansProvider>().confirmLoan(id);
-    if (!ok && mounted) {
-      _showError(context.read<LoansProvider>().error);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Loan'),
+        content: const Text('Are you sure you want to confirm this loan?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Back')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final ok = await context.read<LoansProvider>().confirmLoan(id);
+      if (!ok && mounted) {
+        _showError(context.read<LoansProvider>().error);
+      } else if (ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Loan confirmed successfully.')),
+        );
+      }
     }
   }
 
   Future<void> _returnLoan(int id) async {
-    final ok = await context.read<LoansProvider>().returnLoan(id);
-    if (!ok && mounted) {
-      _showError(context.read<LoansProvider>().error);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Return Book'),
+        content: const Text('Are you sure you want to mark this book as returned?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Back')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Mark as Returned'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final ok = await context.read<LoansProvider>().returnLoan(id);
+      if (!ok && mounted) {
+        _showError(context.read<LoansProvider>().error);
+      } else if (ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Book returned successfully.')),
+        );
+      }
     }
   }
 
@@ -77,9 +119,16 @@ class _LoansScreenState extends State<LoansScreen> with SingleTickerProviderStat
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Cancel Loan'),
-        content: TextField(
-          controller: reasonController,
-          decoration: const InputDecoration(labelText: 'Reason (optional)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Are you sure you want to cancel this loan?'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(labelText: 'Reason (optional)'),
+            ),
+          ],
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Back')),
@@ -96,7 +145,13 @@ class _LoansScreenState extends State<LoansScreen> with SingleTickerProviderStat
             id,
             reason: reasonController.text.trim().isEmpty ? null : reasonController.text.trim(),
           );
-      if (!ok && mounted) _showError(context.read<LoansProvider>().error);
+      if (!ok && mounted) {
+        _showError(context.read<LoansProvider>().error);
+      } else if (ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Loan cancelled successfully.')),
+        );
+      }
     }
   }
 

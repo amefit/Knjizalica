@@ -1,6 +1,7 @@
 using Knjizalica.Api.Data;
 using Knjizalica.Api.Data.Entities;
 using Knjizalica.Shared.Constants;
+using Knjizalica.Shared.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace Knjizalica.Api.Services;
@@ -68,6 +69,11 @@ public sealed class ReportService : IReportService
 
     public async Task<byte[]> GenerateLoansByPeriodReportAsync(DateTime fromDate, DateTime toDate, CancellationToken cancellationToken = default)
     {
+        if (toDate < fromDate)
+        {
+            throw new ValidationAppException("From date must be before or equal to to date.");
+        }
+
         var from = fromDate.Date;
         var to = toDate.Date.AddDays(1).AddTicks(-1);
 

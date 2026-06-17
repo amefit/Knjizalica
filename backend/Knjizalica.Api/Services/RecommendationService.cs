@@ -101,11 +101,12 @@ public sealed class RecommendationService : IRecommendationService
                 book.Title.ToLower().Contains(q) ||
                 book.BookAuthors.Any(ba =>
                     ba.Author.FirstName.ToLower().Contains(q) ||
-                    ba.Author.LastName.ToLower().Contains(q) ||
-                    book.Genre.Name.ToLower().Contains(q))))
+                    ba.Author.LastName.ToLower().Contains(q)) ||
+                book.Genre.Name.ToLower().Contains(q) ||
+                book.BookCategory.Name.ToLower().Contains(q)))
             {
                 reasons.Add("Based on your recent searches");
-                score += 2.5;
+                score += 2;
             }
 
             if (reasons.Count == 0)
@@ -127,13 +128,15 @@ public sealed class RecommendationService : IRecommendationService
             .Take(limit)
             .ToList();
 
+        var ninetyDaysAgo = DateTime.UtcNow.AddDays(-90);
         var popularBookIds = await _context.Loans.AsNoTracking()
             .Include(l => l.LoanStatus)
-            .Where(l => l.LoanStatus.Name == LoanStatusNames.Completed || l.LoanStatus.Name == LoanStatusNames.Confirmed)
+            .Where(l => (l.LoanStatus.Name == LoanStatusNames.Completed || l.LoanStatus.Name == LoanStatusNames.Confirmed)
+                        && l.BorrowedAt >= ninetyDaysAgo)
             .GroupBy(l => l.BookCopy.BookId)
             .OrderByDescending(g => g.Count())
             .Select(g => new { BookId = g.Key, Count = g.Count() })
-            .Take(limit * 2)
+            .Take(limit * 3)
             .ToListAsync(cancellationToken);
 
         var popularBooks = await _context.Books.AsNoTracking()
@@ -145,15 +148,18 @@ public sealed class RecommendationService : IRecommendationService
             .Include(b => b.BookCopies).ThenInclude(c => c.Reservations).ThenInclude(r => r.ReservationStatus)
             .Include(b => b.BookCopies).ThenInclude(c => c.Loans).ThenInclude(l => l.LoanStatus)
             .Where(b => popularBookIds.Select(p => p.BookId).Contains(b.Id))
+            .Where(b => !borrowedBookIds.Contains(b.Id))
             .ToListAsync(cancellationToken);
 
         var popular = popularBookIds
-            .Join(popularBooks, p => p.BookId, b => b.Id, (p, b) => new RecommendationDto
+            .Join(popularBooks, p => p.BookId, b => b.Id, (p, b) => new { p, b })
+            .Where(x => BookCopyAvailability.HasAnyRentableCopy(x.b.BookCopies, today))
+            .Select(x => new RecommendationDto
             {
-                Book = MapBookList(b),
-                Reason = $"Popular — borrowed {p.Count} time(s)",
+                Book = MapBookList(x.b),
+                Reason = "One of the most borrowed books in the last 90 days",
                 Source = "Popularity",
-                Score = p.Count
+                Score = x.p.Count
             })
             .Take(limit)
             .ToList();

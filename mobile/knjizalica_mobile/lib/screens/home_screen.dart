@@ -112,23 +112,25 @@ class _HomeScreenState extends State<HomeScreen> {
                               itemCount: books.featured.length,
                               separatorBuilder: (_, __) => const SizedBox(width: 14),
                               itemBuilder: (context, index) {
-                                final book = books.featured[index];
+                                final recommendation = books.featured[index];
                                 return BookCard(
-                                  book: book,
+                                  book: recommendation.book,
                                   compact: true,
                                   showRecommended: true,
-                                  onTap: () => _openDetail(context, book.id),
+                                  recommendationReason: recommendation.reason,
+                                  onTap: () => _openDetail(context, recommendation.book.id),
                                 );
                               },
                             ),
                     ),
                     const SizedBox(height: 20),
                     ...books.popular.map(
-                      (book) => Padding(
+                      (recommendation) => Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
                         child: BookCard(
-                          book: book,
-                          onTap: () => _openDetail(context, book.id),
+                          book: recommendation.book,
+                          recommendationReason: recommendation.reason,
+                          onTap: () => _openDetail(context, recommendation.book.id),
                         ),
                       ),
                     ),

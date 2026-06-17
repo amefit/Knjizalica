@@ -87,7 +87,13 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     public async Task<CountryDto> CreateCountryAsync(CreateCountryRequest request, CancellationToken cancellationToken = default)
     {
-        var entity = new Country { Name = request.Name.Trim() };
+        var name = request.Name.Trim();
+        if (await _context.Countries.AnyAsync(c => c.Name.ToLower() == name.ToLower(), cancellationToken))
+        {
+            throw new BusinessException("Country with this name already exists.");
+        }
+
+        var entity = new Country { Name = name };
         _context.Countries.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("countries");
@@ -98,7 +104,14 @@ public sealed class ReferenceDataService : IReferenceDataService
     {
         var entity = await _context.Countries.FindAsync([id], cancellationToken)
             ?? throw new NotFoundException("Country not found.");
-        entity.Name = request.Name.Trim();
+
+        var name = request.Name.Trim();
+        if (await _context.Countries.AnyAsync(c => c.Name.ToLower() == name.ToLower() && c.Id != id, cancellationToken))
+        {
+            throw new BusinessException("Country with this name already exists.");
+        }
+
+        entity.Name = name;
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("countries", "cities");
         return new CountryDto { Id = entity.Id, Name = entity.Name };
@@ -143,7 +156,13 @@ public sealed class ReferenceDataService : IReferenceDataService
     public async Task<CityDto> CreateCityAsync(CreateCityRequest request, CancellationToken cancellationToken = default)
     {
         await EnsureCountryExistsAsync(request.CountryId, cancellationToken);
-        var entity = new City { Name = request.Name.Trim(), CountryId = request.CountryId };
+        var name = request.Name.Trim();
+        if (await _context.Cities.AnyAsync(c => c.Name.ToLower() == name.ToLower() && c.CountryId == request.CountryId, cancellationToken))
+        {
+            throw new BusinessException("City with this name already exists in the selected country.");
+        }
+
+        var entity = new City { Name = name, CountryId = request.CountryId };
         _context.Cities.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("cities");
@@ -156,7 +175,14 @@ public sealed class ReferenceDataService : IReferenceDataService
         await EnsureCountryExistsAsync(request.CountryId, cancellationToken);
         var entity = await _context.Cities.FindAsync([id], cancellationToken)
             ?? throw new NotFoundException("City not found.");
-        entity.Name = request.Name.Trim();
+
+        var name = request.Name.Trim();
+        if (await _context.Cities.AnyAsync(c => c.Name.ToLower() == name.ToLower() && c.CountryId == request.CountryId && c.Id != id, cancellationToken))
+        {
+            throw new BusinessException("City with this name already exists in the selected country.");
+        }
+
+        entity.Name = name;
         entity.CountryId = request.CountryId;
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("cities");
@@ -275,7 +301,13 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     private async Task<LookupDto> CreateGenreInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
     {
-        var entity = new Genre { Name = request.Name.Trim() };
+        var name = request.Name.Trim();
+        if (await _context.Genres.AnyAsync(x => x.Name.ToLower() == name.ToLower(), cancellationToken))
+        {
+            throw new BusinessException("Genre with this name already exists.");
+        }
+
+        var entity = new Genre { Name = name };
         _context.Genres.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("genres");
@@ -284,7 +316,13 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     private async Task<LookupDto> CreateBookCategoryInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
     {
-        var entity = new BookCategory { Name = request.Name.Trim() };
+        var name = request.Name.Trim();
+        if (await _context.BookCategories.AnyAsync(x => x.Name.ToLower() == name.ToLower(), cancellationToken))
+        {
+            throw new BusinessException("Book category with this name already exists.");
+        }
+
+        var entity = new BookCategory { Name = name };
         _context.BookCategories.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("categories");
@@ -293,7 +331,13 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     private async Task<LookupDto> CreateLanguageInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
     {
-        var entity = new Language { Name = request.Name.Trim() };
+        var name = request.Name.Trim();
+        if (await _context.Languages.AnyAsync(x => x.Name.ToLower() == name.ToLower(), cancellationToken))
+        {
+            throw new BusinessException("Language with this name already exists.");
+        }
+
+        var entity = new Language { Name = name };
         _context.Languages.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("languages");
@@ -302,7 +346,13 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     private async Task<LookupDto> CreatePublisherInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
     {
-        var entity = new Publisher { Name = request.Name.Trim() };
+        var name = request.Name.Trim();
+        if (await _context.Publishers.AnyAsync(x => x.Name.ToLower() == name.ToLower(), cancellationToken))
+        {
+            throw new BusinessException("Publisher with this name already exists.");
+        }
+
+        var entity = new Publisher { Name = name };
         _context.Publishers.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("publishers");
@@ -311,7 +361,13 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     private async Task<LookupDto> CreateMembershipStatusInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
     {
-        var entity = new MembershipStatus { Name = request.Name.Trim() };
+        var name = request.Name.Trim();
+        if (await _context.MembershipStatuses.AnyAsync(x => x.Name.ToLower() == name.ToLower(), cancellationToken))
+        {
+            throw new BusinessException("Membership status with this name already exists.");
+        }
+
+        var entity = new MembershipStatus { Name = name };
         _context.MembershipStatuses.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("membership-statuses");
@@ -320,7 +376,13 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     private async Task<LookupDto> CreateLoanStatusInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
     {
-        var entity = new LoanStatus { Name = request.Name.Trim() };
+        var name = request.Name.Trim();
+        if (await _context.LoanStatuses.AnyAsync(x => x.Name.ToLower() == name.ToLower(), cancellationToken))
+        {
+            throw new BusinessException("Loan status with this name already exists.");
+        }
+
+        var entity = new LoanStatus { Name = name };
         _context.LoanStatuses.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("loan-statuses");
@@ -329,7 +391,13 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     private async Task<LookupDto> CreateReservationStatusInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
     {
-        var entity = new ReservationStatus { Name = request.Name.Trim() };
+        var name = request.Name.Trim();
+        if (await _context.ReservationStatuses.AnyAsync(x => x.Name.ToLower() == name.ToLower(), cancellationToken))
+        {
+            throw new BusinessException("Reservation status with this name already exists.");
+        }
+
+        var entity = new ReservationStatus { Name = name };
         _context.ReservationStatuses.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("reservation-statuses");
@@ -338,7 +406,13 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     private async Task<LookupDto> CreateActivityTypeInternalAsync(CreateLookupRequest request, CancellationToken cancellationToken)
     {
-        var entity = new ActivityType { Name = request.Name.Trim() };
+        var name = request.Name.Trim();
+        if (await _context.ActivityTypes.AnyAsync(x => x.Name.ToLower() == name.ToLower(), cancellationToken))
+        {
+            throw new BusinessException("Activity type with this name already exists.");
+        }
+
+        var entity = new ActivityType { Name = name };
         _context.ActivityTypes.Add(entity);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache("activity-types");
@@ -375,6 +449,37 @@ public sealed class ReferenceDataService : IReferenceDataService
 
     private async Task<LookupDto> UpdateLookupAsync(string cacheSuffix, int id, UpdateLookupRequest request, CancellationToken cancellationToken)
     {
+        var name = request.Name.Trim();
+        var isDuplicate = cacheSuffix switch
+        {
+            "genres" => await _context.Genres.AnyAsync(x => x.Name.ToLower() == name.ToLower() && x.Id != id, cancellationToken),
+            "categories" => await _context.BookCategories.AnyAsync(x => x.Name.ToLower() == name.ToLower() && x.Id != id, cancellationToken),
+            "languages" => await _context.Languages.AnyAsync(x => x.Name.ToLower() == name.ToLower() && x.Id != id, cancellationToken),
+            "publishers" => await _context.Publishers.AnyAsync(x => x.Name.ToLower() == name.ToLower() && x.Id != id, cancellationToken),
+            "membership-statuses" => await _context.MembershipStatuses.AnyAsync(x => x.Name.ToLower() == name.ToLower() && x.Id != id, cancellationToken),
+            "loan-statuses" => await _context.LoanStatuses.AnyAsync(x => x.Name.ToLower() == name.ToLower() && x.Id != id, cancellationToken),
+            "reservation-statuses" => await _context.ReservationStatuses.AnyAsync(x => x.Name.ToLower() == name.ToLower() && x.Id != id, cancellationToken),
+            "activity-types" => await _context.ActivityTypes.AnyAsync(x => x.Name.ToLower() == name.ToLower() && x.Id != id, cancellationToken),
+            _ => false
+        };
+
+        if (isDuplicate)
+        {
+            var label = cacheSuffix switch
+            {
+                "genres" => "Genre",
+                "categories" => "Book category",
+                "languages" => "Language",
+                "publishers" => "Publisher",
+                "membership-statuses" => "Membership status",
+                "loan-statuses" => "Loan status",
+                "reservation-statuses" => "Reservation status",
+                "activity-types" => "Activity type",
+                _ => "Record"
+            };
+            throw new BusinessException($"{label} with this name already exists.");
+        }
+
         var entity = cacheSuffix switch
         {
             "genres" => (object?)await _context.Genres.FindAsync([id], cancellationToken),
@@ -388,7 +493,7 @@ public sealed class ReferenceDataService : IReferenceDataService
             _ => null
         } ?? throw new NotFoundException("Record not found.");
 
-        SetName(entity, request.Name.Trim());
+        SetName(entity, name);
         await _context.SaveChangesAsync(cancellationToken);
         InvalidateCache(cacheSuffix);
         return new LookupDto { Id = GetId(entity), Name = GetName(entity) };

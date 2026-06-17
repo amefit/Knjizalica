@@ -79,7 +79,7 @@ public sealed class AuthorService : IAuthorService
 
         _context.Authors.Add(author);
         await _context.SaveChangesAsync(cancellationToken);
-        await _activityLog.LogAsync("Book Created", "Author", author.Id, $"Author '{author.FirstName} {author.LastName}' was created.", cancellationToken: cancellationToken);
+        await _activityLog.LogAsync("Author Created", "Author", author.Id, $"Author '{author.FirstName} {author.LastName}' was created.", cancellationToken: cancellationToken);
 
         return new AuthorDto
         {
@@ -99,7 +99,7 @@ public sealed class AuthorService : IAuthorService
         author.LastName = request.LastName.Trim();
         author.Biography = request.Biography?.Trim();
         await _context.SaveChangesAsync(cancellationToken);
-        await _activityLog.LogAsync("Book Updated", "Author", author.Id, $"Author '{author.FirstName} {author.LastName}' was updated.", cancellationToken: cancellationToken);
+        await _activityLog.LogAsync("Author Updated", "Author", author.Id, $"Author '{author.FirstName} {author.LastName}' was updated.", cancellationToken: cancellationToken);
 
         return new AuthorDto
         {
@@ -122,6 +122,6 @@ public sealed class AuthorService : IAuthorService
 
         _context.Authors.Remove(author);
         await _context.SaveChangesAsync(cancellationToken);
-        await _activityLog.LogAsync("Book Deleted", "Author", id, $"Author '{author.FirstName} {author.LastName}' was deleted.", cancellationToken: cancellationToken);
+        await _activityLog.LogAsync("Author Deleted", "Author", id, $"Author '{author.FirstName} {author.LastName}' was deleted.", cancellationToken: cancellationToken);
     }
 }

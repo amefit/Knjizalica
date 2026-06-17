@@ -18,6 +18,9 @@ public sealed class ReservationDto
     public DateTime ToDate { get; init; }
     public DateTime CreatedAt { get; init; }
     public string? ApprovedByName { get; init; }
+    public DateTime? ApprovedAt { get; init; }
+    public DateTime? CancelledAt { get; init; }
+    public string? CancelledByName { get; init; }
     public string? CancellationReason { get; init; }
 }
 

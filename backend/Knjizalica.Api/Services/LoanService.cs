@@ -89,6 +89,11 @@ public sealed class LoanService : ILoanService
 
         MemberEligibility.EnsureCanBorrowAndReserve(member);
 
+        if (request.DueDate.ToUniversalTime().Date <= DateTime.UtcNow.Date)
+        {
+            throw new ValidationAppException("Due date must be in the future.");
+        }
+
         var copy = await _context.BookCopies
             .Include(c => c.Book)
             .Include(c => c.Loans).ThenInclude(l => l.LoanStatus)
@@ -151,7 +156,7 @@ public sealed class LoanService : ILoanService
 
         await _context.SaveChangesAsync(cancellationToken);
         await NotifyStatusChangeAsync(loan, "confirmed", cancellationToken);
-        await _activityLog.LogAsync("Loan Created", "Loan", loan.Id, $"Loan #{loan.Id} was confirmed.", cancellationToken: cancellationToken);
+        await _activityLog.LogAsync("Loan Confirmed", "Loan", loan.Id, $"Loan #{loan.Id} was confirmed.", cancellationToken: cancellationToken);
 
         return MapLoan(loan);
     }
@@ -177,7 +182,7 @@ public sealed class LoanService : ILoanService
 
         await _context.SaveChangesAsync(cancellationToken);
         await NotifyStatusChangeAsync(loan, "cancelled", cancellationToken);
-        await _activityLog.LogAsync("Loan Created", "Loan", loan.Id, $"Loan #{loan.Id} was cancelled.", cancellationToken: cancellationToken);
+        await _activityLog.LogAsync("Loan Cancelled", "Loan", loan.Id, $"Loan #{loan.Id} was cancelled.", cancellationToken: cancellationToken);
 
         return MapLoan(loan);
     }
