@@ -187,19 +187,42 @@ public sealed class ReservationService : IReservationService
         reservation.ApprovedByUserId = _currentUser.UserId;
         reservation.ApprovedAt = DateTime.UtcNow;
 
+        var pendingLoanStatus = await _context.LoanStatuses
+            .FirstAsync(s => s.Name == LoanStatusNames.Pending, cancellationToken);
+
+        var loan = new Loan
+        {
+            MemberProfileId = reservation.MemberProfileId,
+            BookCopyId = reservation.BookCopyId,
+            LoanStatusId = pendingLoanStatus.Id,
+            BorrowedAt = reservation.FromDate,
+            DueDate = reservation.ToDate,
+            ApprovedByUserId = _currentUser.UserId,
+            ApprovedAt = DateTime.UtcNow,
+        };
+
+        _context.Loans.Add(loan);
+
         await _context.SaveChangesAsync(cancellationToken);
-        await _activityLog.LogAsync("Reservation Confirmed", "Reservation", reservation.Id, $"Reservation #{reservation.Id} was confirmed.", cancellationToken: cancellationToken);
+
+        await _activityLog.LogAsync(
+            "Reservation Confirmed",
+            "Reservation",
+            reservation.Id,
+            $"Reservation #{reservation.Id} confirmed. Loan created for '{reservation.BookCopy.Book.Title}'.",
+            cancellationToken: cancellationToken);
 
         await _notifications.SendAsync(
             reservation.MemberProfile.UserId,
             "Reservation confirmed",
-            $"Your reservation for '{reservation.BookCopy.Book.Title}' was confirmed.",
+            $"Reservation for '{reservation.BookCopy.Book.Title}' has been confirmed.",
             sendEmail: true,
             email: reservation.MemberProfile.User.Email,
             cancellationToken: cancellationToken);
 
         return MapReservation(reservation);
     }
+
 
     public async Task<ReservationDto> CompleteAsync(int id, CancellationToken cancellationToken = default)
     {

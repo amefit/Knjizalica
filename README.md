@@ -40,8 +40,8 @@ Digital library management system — **Razvoj softvera II** project - IB240333.
 
 | Context | Username | Password | Role |
 |---------|----------|----------|------|
-| Desktop admin | `desktop` | `test` | Admin |
-| Mobile member | `mobile` | `test` | User |
+| Desktop admin | `desktop` | `Testni0.` | Admin |
+| Mobile member | `mobile` | `Testni0.` | User |
 
 ## Flutter Clients
 

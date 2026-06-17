@@ -148,7 +148,7 @@ public static class DatabaseSeeder
             SecurityStamp = Guid.NewGuid().ToString()
         };
 
-        var adminResult = await userManager.CreateAsync(admin, "test");
+        var adminResult = await userManager.CreateAsync(admin, "Testni0.");
         if (!adminResult.Succeeded)
         {
             throw new InvalidOperationException(string.Join("; ", adminResult.Errors.Select(e => e.Description)));
@@ -156,7 +156,7 @@ public static class DatabaseSeeder
 
         await userManager.AddToRoleAsync(admin, RoleNames.Admin);
 
-        var memberResult = await userManager.CreateAsync(member, "test");
+        var memberResult = await userManager.CreateAsync(member, "Testni0.");
         if (!memberResult.Succeeded)
         {
             throw new InvalidOperationException(string.Join("; ", memberResult.Errors.Select(e => e.Description)));
@@ -171,7 +171,7 @@ public static class DatabaseSeeder
             MembershipStatusId = activeStatus.Id,
             CityId = sarajevo.Id,
             RegistrationDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-            ExpiryDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            ExpiryDate = new DateTime(2027, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             ProfileImagePath = "/uploads/seed/default-member.png"
         });
 
