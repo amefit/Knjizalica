@@ -3,6 +3,7 @@
   <PropertyGroup>
     <RootNamespace>Knjizalica.Worker</RootNamespace>
     <AssemblyName>Knjizalica.Worker</AssemblyName>
+	<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
   </PropertyGroup>
 
   <ItemGroup>

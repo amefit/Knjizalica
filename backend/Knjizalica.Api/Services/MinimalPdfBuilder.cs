@@ -109,8 +109,7 @@ internal static class MinimalPdfBuilder
 
     private static void AppendLine(StringBuilder stream, string text, int x, int y, int fontSize)
     {
-        stream.AppendLine($"/F1 {fontSize} Tf {x} {y} Td ({Escape(text)}) Tj");
-        stream.AppendLine($"0 0 Td"); // Reset relative Td if needed, but we use absolute Y logic
+        stream.AppendLine($"/F1 {fontSize} Tf 1 0 0 1 {x} {y} Tm ({Escape(text)}) Tj");
     }
 
     private static string Escape(string text)
