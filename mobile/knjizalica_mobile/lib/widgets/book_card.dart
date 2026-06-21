@@ -40,11 +40,11 @@ class BookCard extends StatelessWidget {
       width: 150,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         children: [
           Stack(
             children: [
-              _cover(imageUrl, height: 175),
+              _cover(imageUrl, height: 150),
               if (showRecommended)
                 Positioned(
                   top: 8,
@@ -63,43 +63,45 @@ class BookCard extends StatelessWidget {
                 ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  book.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  book.authorsLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
-                ),
-                if (recommendationReason != null) ...[
-                  const SizedBox(height: 4),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
                   Text(
-                    recommendationReason!,
+                    book.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.blue.shade700,
-                      fontStyle: FontStyle.italic,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    book.authorsLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 11),
+                  ),
+                  if (recommendationReason != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      recommendationReason!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.blue.shade700,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
+                  ],
+                  const SizedBox(height: 4),
+                  StatusBadge(
+                    status: book.isAvailable ? 'Available' : 'Borrowed',
                   ),
                 ],
-                const SizedBox(height: 4),
-                StatusBadge(
-                  status: book.isAvailable ? 'Available' : 'Borrowed',
-                ),
-              ],
+              ),
             ),
           ),
         ],

@@ -64,8 +64,8 @@ class CreateReservationRequest {
 
   Map<String, dynamic> toJson() => {
         'bookCopyId': bookCopyId,
-        'fromDate': fromDate.toUtc().toIso8601String(),
-        'toDate': toDate.toUtc().toIso8601String(),
+        'fromDate': fromDate.toIso8601String(),
+        'toDate': toDate.toIso8601String(),
       };
 }
 

@@ -662,8 +662,8 @@ class ApiService {
 
   Future<Uint8List> downloadLoansByPeriodReport(DateTime from, DateTime to) async {
     return downloadBytes('/reports/loans-by-period', query: {
-      'fromDate': from.toUtc().toIso8601String(),
-      'toDate': to.toUtc().toIso8601String(),
+      'fromDate': from.toIso8601String(),
+      'toDate': to.toIso8601String(),
     });
   }
 }
